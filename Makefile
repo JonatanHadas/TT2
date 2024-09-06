@@ -22,17 +22,20 @@ endif
 ## Utils
 
 HEADS_utils/utils := utils/utils
+HEADS_utils/numbers := utils/numbers	
 
 ## Game objects
 
 # Data
 
-HEADS_game/data/game_objects := game/data/game_objects utils/serialization
+HEADS_game/data/game_objects := game/data/game_objects utils/serialization utils/numbers
+HEADS_game/data/game_settings := game/data/game_settings utils/serialization
 
 # Logic
 
-HEADS_game/logic/game := game/logic/game game/interface/game_view game/data/game_objects utils/serialization game/logic/maze
-HEADS_game/logic/maze := game/logic/maze game/data/game_objects utils/utils
+HEADS_game/logic/geometry := game/logic/geometry utils/numbers
+HEADS_game/logic/game := game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/serialization utils/numbers game/logic/maze
+HEADS_game/logic/maze := game/logic/maze game/data/game_objects utils/numbers utils/utils
 
 ## GUI
 
@@ -44,18 +47,22 @@ HEADS_gui/utils/utils := gui/utils/utils
 HEADS_gui/utils/colors := gui/utils/colors
 HEADS_gui/utils/clock := gui/utils/clock
 
+# Controlls
+
+HEAD_gui/controls/keyset := gui/controls/keyset gui/controls/controller game/data/game_objects
+
 # Game
 
-HEADS_gui/game/game_drawer := gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/data/game_objects
-HEADS_gui/game/game_gui := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/data/game_objects
+HEADS_gui/game/game_drawer := gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/data/game_objects utils/numbers game/data/game_settings
+HEADS_gui/game/game_gui := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/numbers game/data/game_settings gui/controls/keyset gui/controls/controller
 
 ## Executables
 
-HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/data/game_objects
+HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller
 
-CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors
+CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset
 SERVER_OBJECTS := 
-COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/maze
+COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings
 
 CLIENT_EXEC := tank_trouble
 SERVER_EXEC := server

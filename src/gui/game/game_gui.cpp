@@ -1,17 +1,30 @@
 #include "game_gui.h"
 
 GameGui::GameGui(
-	GameView* view
+	GameView* view,
+	GameAdvancer* advancer,
+	const GameSettings& settings,
+	map<PlayerInterface*, unique_ptr<Controller>>&& controllers
 ) :
-	drawer(view),
-	view(view) {
-		
+	settings(settings),
+	drawer(view, this->settings),
+	view(view),
+	advancer(advancer),
+	controllers(move(controllers)) {
+
 }
 
 GameGui::~GameGui(){
 }
 
 bool GameGui::step(){
+	for(auto& entry: controllers){
+		entry.first->step(view->get_round(), entry.second->get_state());
+	}
+	
+	advancer->allow_step();
+	advancer->advance();
+
 	drawer.step();
 	return false;
 }
@@ -24,6 +37,9 @@ bool GameGui::handle_event(const SDL_Event& event){
 			return true;
 		}
 		break;
+	}
+	for(auto& entry: controllers){
+		entry.second->handle_event(event);
 	}
 	return false;
 }

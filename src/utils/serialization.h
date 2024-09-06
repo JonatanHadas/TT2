@@ -12,11 +12,11 @@ template<typename T>
 class Serializer{
 public:
 	static void serialize(ostream& output, const T& value){
-		value.serialize_value(output);
+		value.serialize(output);
 	}
 	
 	static T deserialize(istream& input){
-		return T::deserialize_value(input);
+		return T::deserialize(input);
 	}
 };
 

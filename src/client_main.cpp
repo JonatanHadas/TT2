@@ -5,6 +5,7 @@
 
 #include "gui/gui.h"
 #include "gui/game/game_gui.h"
+#include "gui/controls/keyset.h"
 #include "game/logic/game.h"
 
 using namespace std;
@@ -55,10 +56,42 @@ int main(int argc, char** argv){
 	SDL_GetRendererOutputSize(renderer, &screen_w, &screen_h);
 	SDL_RenderSetLogicalSize(renderer, screen_w, screen_h);
 
-	Game game(MazeGeneration::EXPAND_TREE);
+	vector<int> colors;
+	for(int i = 0; i < 3; i++) colors.push_back(i);
+	GameSettings settings(
+		colors
+	);
 
+	Game game(MazeGeneration::EXPAND_TREE, settings.colors.size());
+	
+	map<PlayerInterface*, unique_ptr<Controller>> controllers;
+	controllers.insert(make_pair(
+		&game.get_player_interface(0),
+		make_unique<KeyController>(KeySet({
+			.left=SDL_SCANCODE_LEFT,
+			.right=SDL_SCANCODE_RIGHT,
+			.forward=SDL_SCANCODE_UP,
+			.back=SDL_SCANCODE_DOWN,
+			.shoot=SDL_SCANCODE_SPACE,
+		}))
+	));
+	controllers.insert(make_pair(
+		&game.get_player_interface(1),
+		make_unique<KeyController>(KeySet({
+			.left=SDL_SCANCODE_A,
+			.right=SDL_SCANCODE_D,
+			.forward=SDL_SCANCODE_W,
+			.back=SDL_SCANCODE_S,
+			.shoot=SDL_SCANCODE_TAB,
+		}))
+	));
+	game.get_player_interface(2).set_active(false);
+	
 	GameGui gui(
-		&game
+		&game,
+		&game,
+		settings,
+		move(controllers)
 	);
 
 	mainloop(gui, renderer);

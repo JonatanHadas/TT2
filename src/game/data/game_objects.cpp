@@ -72,41 +72,33 @@ KeyState KeyState::deserialize(istream& input){
 }
 
 TankState::TankState(
-	Number x,
-	Number y,
-	Number direction_x,
-	Number direction_y,
-	KeyState key_state,
+	const Point& position,
+	const Point& direction,
+	const KeyState& key_state,
 	bool active
 ) :
-	x(x),
-	y(y),
-	direction_x(direction_x),
-	direction_y(direction_y),
+	position(position),
+	direction(direction),
 	key_state(key_state),
 	active(active) {
 		
 }
 
 void TankState::serialize(ostream& output) const{
-	serialize_value(output, x);
-	serialize_value(output, y);
-	serialize_value(output, direction_x);
-	serialize_value(output, direction_y);
+	serialize_value(output, position);
+	serialize_value(output, direction);
 	serialize_value(output, key_state);
 	serialize_value(output, active);
 }
 TankState TankState::deserialize(istream& input){
-	auto x = deserialize_value<Number>(input);
-	auto y = deserialize_value<Number>(input);
-	auto direction_x = deserialize_value<Number>(input);
-	auto direction_y = deserialize_value<Number>(input);
+	auto position = deserialize_value<Point>(input);
+	auto direction = deserialize_value<Point>(input);
 	auto key_state = deserialize_value<KeyState>(input);
 	auto active = deserialize_value<bool>(input);
 	
 	return TankState(
-		x, y,
-		direction_x, direction_y,
+		position,
+		direction,
 		key_state,
 		active
 	);

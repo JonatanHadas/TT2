@@ -3,6 +3,7 @@
 #include "../../utils/utils.h"
 
 #include "geometry.h"
+#include "logic.h"
 #include "maze.h"
 
 Game::Game(
@@ -83,28 +84,24 @@ const Maze& Round::get_maze() const{
 
 Tank::Tank(Game& game) :
 	game(game),
-	x(-1),
-	y(-1),
-	direction_x(1),
-	direction_y(0),
-	active(true) {
+	state(
+		{ .x = -1, .y = -1 } /*position*/,
+		{ .x = 1, .y = 0 } /*direction*/,
+		KeyState(),
+		true /*active*/
+	) {
 	
 }
 
-TankState Tank::get_state() const{
-	return TankState(
-		x, y,
-		direction_x, direction_y,
-		last_key_state,
-		active
-	);
+const TankState& Tank::get_state() const{
+	return state;
 }
 void Tank::reset(int maze_w, int maze_h){
-	x = Number(2 * rand_range(0, maze_w) + 1) / 2;
-	y = Number(2 * rand_range(0, maze_h) + 1) / 2;
+	state.position.x = Number(2 * rand_range(0, maze_w) + 1) / 2;
+	state.position.y = Number(2 * rand_range(0, maze_h) + 1) / 2;
 	
-	random_direction(direction_x, direction_y);
-	last_key_state = KeyState();
+	state.direction = random_direction();
+	state.key_state = KeyState();
 	pending_keys.clear();
 }
 
@@ -112,37 +109,21 @@ void Tank::step(int round, KeyState key_state){
 	if(round == game.get_round()) pending_keys.push_back(key_state);
 }
 void Tank::set_active(bool active){
-	this->active = active;
+	state.active = active;
 	pending_keys.clear();
 }
 
 bool Tank::can_advance() const{
-	return !active || !pending_keys.empty();
+	return !state.active || !pending_keys.empty();
 }
 void Tank::advance(){
-	if(active){
-		last_key_state = pending_keys.front();
+	if(state.active){
+		state.key_state = pending_keys.front();
 		pending_keys.pop_front();
 	}
 	else{
-		last_key_state = KeyState();
+		state.key_state = KeyState();
 	}
-	
-	int turn_state = (last_key_state.right ? 1 : 0) - (last_key_state.left ? 1 : 0);
-	if(turn_state){
-		rotate(
-			direction_x, direction_y,
-			TURN_COS, turn_state * TURN_SIN
-		);
-		normalize(direction_x, direction_y);
-	}
-	
-	Number speed = (
-		last_key_state.forward ? TANK_SPEED : Number(0)
-	) - (
-		last_key_state.back ? TANK_REVERSE_SPEED : Number(0)
-	);
-	
-	x += direction_x * speed;
-	y += direction_y * speed;
+
+	advance_tank(state, game.get_maze());
 }

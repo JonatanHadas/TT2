@@ -3,6 +3,11 @@
 
 #include "../../utils/numbers.h"
 
+#include <vector>
+#include <iostream>
+
+using namespace std;
+
 extern const Number WALL_WIDTH;
 
 extern const Number TURN_COS;
@@ -14,14 +19,24 @@ extern const Number TANK_LENGTH;
 extern const Number TANK_SPEED;
 extern const Number TANK_REVERSE_SPEED;
 
-void rotate(
-	Number& direction_x, Number& direction_y,
-	Number rotation_x, Number rotation_y
-);
+Point rotate(const Point& direction, const Point& rotation);
 
-void normalize(Number& x, Number& y);
+void normalize(Point& point);
 
 // random discrete direction
-void random_direction(Number& direction_x, Number& direction_y);
+Point random_direction();
+
+struct Collision{
+	Point position;
+	Point normal;
+	Number depth;
+};
+
+/* Convex polygons only */
+bool polygon_collision(
+	const vector<Point>& polygon1,
+	const vector<Point>& polygon2,
+	Collision& collision
+);
 
 #endif

@@ -49,15 +49,13 @@ public:
 class TankState{
 public:
 	TankState(
-		Number x,
-		Number y,
-		Number direction_x,
-		Number direction_y,
-		KeyState key_state,
+		const Point& position,
+		const Point& direction,
+		const KeyState& key_state,
 		bool active
 	);
 
-	Number x, y, direction_x, direction_y;
+	Point position, direction;
 	KeyState key_state;
 	bool active;
 	

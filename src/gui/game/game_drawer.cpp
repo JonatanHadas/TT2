@@ -4,14 +4,17 @@
 
 #include "../../game/logic/geometry.h"
 
+#include "../../game/logic/logic.h"
+
 #define DRAW_SCALE 100
 
 #define _USE_MATH_DEFINES
 #include <math.h>
 #define RAD2DEG(x) ((x)*180 / M_PI)
 
-static inline double angle(Number x, Number y){
-	return RAD2DEG(atan2((double)x, (double)-y));
+static inline double angle(const Point& point){
+	
+	return RAD2DEG(atan2((double)point.x, (double)-point.y));
 }
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
@@ -88,8 +91,8 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			SDL_Rect tank_rect;
 			tank_rect.w = DRAW_SCALE * TANK_WIDTH;
 			tank_rect.h = DRAW_SCALE * TANK_LENGTH;
-			tank_rect.x = (tank_states[i].x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
-			tank_rect.y = (tank_states[i].y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
+			tank_rect.x = (tank_states[i].position.x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
+			tank_rect.y = (tank_states[i].position.y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
 			
 			SDL_SetTextureColorMod(
 				tank_texture->get(),
@@ -101,7 +104,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 				renderer,
 				tank_texture->get(),
 				NULL, &tank_rect,
-				angle(tank_states[i].direction_x, tank_states[i].direction_y), NULL,
+				angle(tank_states[i].direction), NULL,
 				SDL_FLIP_NONE
 			);
 		}

@@ -34,7 +34,8 @@ HEADS_game/data/game_settings := game/data/game_settings utils/serialization
 # Logic
 
 HEADS_game/logic/geometry := game/logic/geometry utils/numbers
-HEADS_game/logic/game := game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/serialization utils/numbers game/logic/maze
+HEADS_game/logic/logic := game/logic/logic game/logic/geometry game/data/game_objects utils/serialization
+HEADS_game/logic/game := game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/serialization utils/numbers game/logic/maze game/logic/logic
 HEADS_game/logic/maze := game/logic/maze game/data/game_objects utils/numbers utils/utils
 
 ## GUI
@@ -62,7 +63,7 @@ HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/ut
 
 CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset
 SERVER_OBJECTS := 
-COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings
+COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings game/logic/logic
 
 CLIENT_EXEC := tank_trouble
 SERVER_EXEC := server

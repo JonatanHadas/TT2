@@ -46,15 +46,13 @@ public:
 class Tank : public PlayerInterface{
 	Game& game;
 	
-	Number x, y, direction_x, direction_y;
-	KeyState last_key_state;
-	bool active;
-	
+	TankState state;
+		
 	deque<KeyState> pending_keys;
 public:
 	Tank(Game& game);
 	
-	TankState get_state() const;
+	const TankState& get_state() const;
 	void reset(int maze_w, int maze_h);
 	
 	void step(int round, KeyState key_state);

@@ -130,6 +130,44 @@ Number operator/(double num1, Number num2){
 	return Number((num1 * SCALE * SCALE)/num2.scaled_value, 0);
 }
 
+bool Number::operator<(Number other){
+	return scaled_value < other.scaled_value;
+}
+bool Number::operator<=(Number other){
+	return scaled_value <= other.scaled_value;
+}
+bool Number::operator>(Number other){
+	return scaled_value > other.scaled_value;
+}
+bool Number::operator>=(Number other){
+	return scaled_value >= other.scaled_value;
+}
+bool Number::operator==(Number other){
+	return scaled_value == other.scaled_value;
+}
+bool Number::operator!=(Number other){
+	return scaled_value != other.scaled_value;
+}
+
+bool Number::operator<(int other){
+	return *this < Number(other);
+}
+bool Number::operator<=(int other){
+	return *this <= Number(other);
+}
+bool Number::operator>(int other){
+	return *this > Number(other);
+}
+bool Number::operator>=(int other){
+	return *this >= Number(other);
+}
+bool Number::operator==(int other){
+	return *this == Number(other);
+}
+bool Number::operator!=(int other){
+	return *this != Number(other);
+}
+
 Number::operator int() const{
 	return scaled_value / SCALE;
 }
@@ -142,4 +180,111 @@ void Number::serialize(ostream& output) const{
 }
 Number Number::deserialize(istream& input){
 	return Number(deserialize_value<int>(input), 0);
+}
+
+
+void Point::serialize(ostream& output) const{
+	serialize_value(output, x);
+	serialize_value(output, y);
+}
+Point Point::deserialize(istream& input){
+	auto x = deserialize_value<Number>(input);
+	auto y = deserialize_value<Number>(input);
+	return {
+		.x = x,
+		.y = y
+	};
+}
+
+Point Point::operator +(const Point& other) const{
+	return {
+		.x = x + other.x,
+		.y = y + other.y
+	};
+}
+Point Point::operator -(const Point& other) const{
+	return {
+		.x = x - other.x,
+		.y = y - other.y
+	};
+}
+
+Point& Point::operator +=(const Point& other){
+	x += other.x;
+	y += other.y;
+	return *this;
+}
+Point& Point::operator -=(const Point& other){
+	x -= other.x;
+	y -= other.y;
+	return *this;
+}
+
+Point Point::operator *(Number scale) const {
+	return {
+		.x = x * scale,
+		.y = y * scale,
+	};
+}
+Point Point::operator /(Number scale) const {
+	return {
+		.x = x / scale,
+		.y = y / scale,
+	};
+}
+Point& Point::operator *=(Number scale){
+	x *= scale;
+	y *= scale;
+	return *this;
+}
+Point& Point::operator /=(Number scale){
+	x /= scale;
+	y /= scale;
+	return *this;
+}
+
+Point Point::operator *(int scale) const {
+	return {
+		.x = x * scale,
+		.y = y * scale,
+	};
+}
+Point Point::operator /(int scale) const {
+	return {
+		.x = x / scale,
+		.y = y / scale,
+	};
+}
+Point& Point::operator *=(int scale){
+	x *= scale;
+	y *= scale;
+	return *this;
+}
+Point& Point::operator /=(int scale){
+	x /= scale;
+	y /= scale;
+	return *this;
+}
+
+Point Point::operator *(double scale) const {
+	return {
+		.x = x * scale,
+		.y = y * scale,
+	};
+}
+Point Point::operator /(double scale) const {
+	return {
+		.x = x / scale,
+		.y = y / scale,
+	};
+}
+Point& Point::operator *=(double scale){
+	x *= scale;
+	y *= scale;
+	return *this;
+}
+Point& Point::operator /=(double scale){
+	x /= scale;
+	y /= scale;
+	return *this;
 }

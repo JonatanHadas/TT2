@@ -39,4 +39,8 @@ bool polygon_collision(
 	Collision& collision
 );
 
+bool get_collision_displacement(const vector<Collision>& collisions, Point& displacement);
+
+bool collision_rotate(const vector<Collision>& collisions, const Point& center, Point& direction, Number threshold);
+
 #endif

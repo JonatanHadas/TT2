@@ -115,11 +115,11 @@ vector<Collision> get_tank_collisions(const TankState& tank, const Maze& maze){
 	return collisions;
 }
 
-const Number EPSILON = Number(1) / 1000000;
+const Number EPSILON = Number(1) / 10000;
 
 void advance_tank(TankState& tank, const Maze& maze){
 	int turn_state = (tank.key_state.right ? 1 : 0) - (tank.key_state.left ? 1 : 0);
-		
+
 	if(turn_state){
 		Point previous_direction = tank.direction;
 		Point previous_position = tank.position;
@@ -130,11 +130,20 @@ void advance_tank(TankState& tank, const Maze& maze){
 		);
 		normalize(tank.direction);
 
-		if(!get_tank_collisions(tank, maze).empty()){
+		auto collisions = get_tank_collisions(tank, maze);
+		if(!collisions.empty()){
+			Point displacement = { .x = 0, .y = 0 };
+			for(auto& collision: collisions) collision.depth += EPSILON;
+
+			if(get_collision_displacement(collisions, displacement)){
+				tank.position -= displacement;
+				collisions = get_tank_collisions(tank, maze);
+			}
+		}
+		if(!collisions.empty()){
 			tank.direction = previous_direction;
 			tank.position = previous_position;
 		}
-		
 	}
 	
 	
@@ -150,7 +159,16 @@ void advance_tank(TankState& tank, const Maze& maze){
 		
 		tank.position += tank.direction * speed;
 
-		if(!get_tank_collisions(tank, maze).empty()){
+		auto collisions = get_tank_collisions(tank, maze);
+		if(!collisions.empty()){
+			for(auto& collision: collisions) collision.depth += EPSILON;
+
+			if(collision_rotate(collisions, tank.position, tank.direction, 2*TURN_SIN)){
+				normalize(tank.direction);
+				collisions = get_tank_collisions(tank, maze);
+			}
+		}
+		if(!collisions.empty()){
 			tank.direction = previous_direction;
 			tank.position = previous_position;
 		}

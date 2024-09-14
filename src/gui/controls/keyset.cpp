@@ -51,7 +51,7 @@ KeyState KeyController::get_state(){
 	state.right = keyboard_state[key_set.right];
 	state.forward = keyboard_state[key_set.forward];
 	state.back = keyboard_state[key_set.back];
-	state.shoot = false;
+	state.shoot = keyboard_state[key_set.shoot];
 	
 	return result;
 }

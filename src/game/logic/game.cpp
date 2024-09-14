@@ -133,20 +133,21 @@ const Number SHOT_SPEED = Number(1)/25;
 const int SHOT_TTL = 1200;
 const int MAX_SHOTS = 5;
 
-ShotManager::ShotManager(int owner) : owner(owner) {}
+ShotManager::ShotManager(int owner) : owner(owner), pressed(false) {}
 
 bool ShotManager::step(const TankState& owner_state, Round& round){
 	vector<int> removed_shots;
 	for(int shot: shots) if(round.get_shot(shot) == nullptr) removed_shots.push_back(shot);
 	for(int shot: removed_shots) shots.erase(shot);
 
-	if(owner_state.key_state.shoot && shots.size() < MAX_SHOTS){
+	if(owner_state.key_state.shoot && ! pressed && shots.size() < MAX_SHOTS){
 		shots.insert(round.add_shot(make_unique<Shot>(ShotDetails(
 			owner_state.position + owner_state.direction * CANNON_LENGTH,
 			owner_state.direction * SHOT_SPEED,
 			SHOT_RADIUS, SHOT_TTL
 		), owner)));
 	}
+	pressed = owner_state.key_state.shoot;
 	return true;
 }
 

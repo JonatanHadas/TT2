@@ -58,6 +58,7 @@ public:
 
 class ShotManager : public WeaponManager{
 	const int owner;
+	bool pressed;
 	set<int> shots;
 public:
 	ShotManager(int owner);

@@ -175,6 +175,10 @@ Number::operator double() const{
 	return ((double) scaled_value) / SCALE;
 }
 
+Number Number::square() const{
+	return (*this) * (*this);
+}
+
 void Number::serialize(ostream& output) const{
 	serialize_value(output, scaled_value);
 }

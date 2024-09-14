@@ -103,3 +103,36 @@ TankState TankState::deserialize(istream& input){
 		active
 	);
 }
+
+ShotDetails::ShotDetails(
+	const Point& position,
+	const Point& velocity,
+	Number radius,
+	int timer
+) :
+	position(position),
+	velocity(velocity),
+	radius(radius),
+	timer(timer) {
+		
+}
+
+void ShotDetails::serialize(ostream& output) const {
+	serialize_value(output, position);
+	serialize_value(output, velocity);
+	serialize_value(output, radius);
+	serialize_value(output, timer);
+}
+
+ShotDetails ShotDetails::deserialize(istream& input){
+	auto position = deserialize_value<Point>(input);
+	auto velocity = deserialize_value<Point>(input);
+	auto radius = deserialize_value<Number>(input);
+	auto timer = deserialize_value<int>(input);
+	
+	return ShotDetails(
+		position, velocity,
+		radius,
+		timer
+	);
+}

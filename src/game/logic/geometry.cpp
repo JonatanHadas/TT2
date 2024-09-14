@@ -30,8 +30,12 @@ Point rotate(const Point& direction, const Point& rotation) {
 	};
 }
 
+double length(const Point& point){
+	return sqrt((double)(point.x * point.x + point.y * point.y));
+};
+
 void normalize(Point& point){
-	point /= sqrt((double)(point.x * point.x + point.y * point.y));
+	point /= length(point);
 }
 
 Point random_direction(){
@@ -129,6 +133,112 @@ bool polygon_collision(
 	}
 	
 	return true;
+}
+
+bool polygon_moving_circle_collision(
+	const vector<Point>& polygon,
+	const Point& position,
+	const Point& velocity,
+	Number radius,
+	Point& normal,
+	Number& fraction
+) {
+	
+	Number max_fraction = 1, min_fraction = 0;
+	
+	for(int i = 0; i < polygon.size(); i++){
+		Point edge = polygon[(i + 1) % polygon.size()] - polygon[i];
+		normalize(edge);
+		
+		auto slope = cross(velocity, edge);
+		auto intersect = (radius - cross(position - polygon[i], edge));
+		
+		if(slope == 0){
+			if(intersect > 0) min_fraction = max_fraction + 1;
+		}
+		else{
+			auto candidate = intersect / slope;
+			if(slope > 0){
+				if(candidate < max_fraction){
+					max_fraction = candidate;
+				}
+			} else if(slope < 0){
+				if(candidate > min_fraction){
+					min_fraction = candidate;
+					normal = { .x = edge.y, .y = -edge.x };
+				}
+			}
+		}
+		
+		Point next_edge = polygon[(i + 2) % polygon.size()] - polygon[(i + 1) % polygon.size()];
+		normalize(next_edge);
+		
+		edge += next_edge;
+		Number distance = radius * length(edge);
+		normalize(edge);
+		
+		slope = cross(velocity, edge);
+		intersect = (distance - cross(position - polygon[(i + 1) % polygon.size()], edge));
+		
+		if(slope == 0){
+			if(intersect > 0) min_fraction = max_fraction + 1;
+		}
+		else{
+			auto candidate = intersect / slope;
+			if(slope > 0){
+				if(candidate < max_fraction){
+					max_fraction = candidate;
+				}
+			} else {
+				if(candidate > min_fraction){
+					min_fraction = candidate;
+					normal = { .x = edge.y, .y = -edge.x };
+				}
+			}
+		}
+	}
+	
+	fraction = min_fraction;
+	bool collision = max_fraction > min_fraction;
+	
+	for(const auto& vertex: polygon){
+		Point relative_position = position - vertex;
+		Number slope = dot(relative_position, velocity);
+		Number curve = dot(velocity, velocity);
+		Number discriminant = slope.square() - curve * (dot(relative_position, relative_position) - radius.square());
+
+		if((double)radius >= length(relative_position)){
+			fraction = 0;
+			collision = true;
+			normal = relative_position;
+			normalize(normal);
+			break;  // Already inside
+		}
+		if(curve + radius < dot(relative_position, relative_position)){
+			continue;  // To far
+		}
+		if(slope >= 0){
+			continue;  // Going away
+		}
+		if(curve == 0) continue;
+		
+		if(discriminant < 0){
+			continue;
+		}
+		
+		Number lower = (-slope - sqrt((double)discriminant)) / curve;
+		Number upper = (-slope + sqrt((double)discriminant)) / curve;
+		
+		if(lower < 0) lower = 0;
+		if(upper > 0 && lower < (collision ? fraction : Number(1))){
+			fraction = lower;
+			collision = true;
+			normal = position + velocity * fraction - vertex;
+			normalize(normal);
+		}
+	}
+	
+	return collision;
 }
 
 Point simple_collision_displacement(const Collision& collision1, const Collision& collision2){

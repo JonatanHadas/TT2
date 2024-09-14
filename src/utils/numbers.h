@@ -84,6 +84,8 @@ public:
 	
 	operator int() const;
 	operator double() const;
+
+	Number square() const;
 	
 	void serialize(ostream& output) const;
 	static Number deserialize(istream& input);

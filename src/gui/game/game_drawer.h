@@ -18,6 +18,7 @@ class BoardDrawer{
 	unique_ptr<Texture> texture;
 
 	unique_ptr<Texture> tank_texture;  // Temp
+	unique_ptr<Texture> circle_texture;
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);
 	

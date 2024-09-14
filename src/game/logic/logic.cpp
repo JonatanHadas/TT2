@@ -174,3 +174,95 @@ void advance_tank(TankState& tank, const Maze& maze){
 		}
 	}
 }
+
+int advance_shot(
+	ShotDetails& shot,
+	const Maze& maze,
+	const vector<const TankState*>& tanks,
+	int& ignored_tank,
+	vector<Point>& collisions
+){	
+	Point remaining_way = shot.velocity;
+	
+	int tank_collision = -1;
+	
+	bool finished = false;
+
+	while(!finished){
+		Point step = remaining_way;
+		auto len = length(step);
+		if(len < 0.5){
+			finished = true;
+		} else {
+			if( len > 1 ) normalize(step);
+			step /= 2;
+		}
+		
+		Number fraction = 1;
+		Point normal = { .x = 0, .y = 0 };
+		for(const auto& polygon: get_maze_polygons(shot.position.x, shot.position.y, maze)){
+			Number current_fraction = 0;
+			Point current_normal = { .x = 0, .y = 0 };
+			
+			if(polygon_moving_circle_collision(
+				polygon,
+				shot.position, step,
+				shot.radius,
+				current_normal, current_fraction
+			)){
+				if(current_fraction < fraction && (current_normal.x * shot.velocity.x < 0 || current_normal.y * shot.velocity.y < 0)){
+					ignored_tank = -1;
+					finished = false;
+					fraction = current_fraction;
+					normal = current_normal;
+				}
+			}
+		}
+		
+		for(int tank_index = 0; tank_index < tanks.size(); tank_index++){
+			auto polygon = get_rotated_rectangle(
+				tanks[tank_index]->position,
+				tanks[tank_index]->direction,
+				TANK_WIDTH, TANK_LENGTH
+			);
+
+			Number current_fraction = 0;
+			Point current_normal = { .x = 0, .y = 0 };
+			
+			if(polygon_moving_circle_collision(
+				polygon,
+				shot.position, step,
+				shot.radius,
+				current_normal, current_fraction
+			)){
+				if(tank_index != ignored_tank && current_fraction < fraction){
+					finished = true;
+					tank_collision = tank_index;
+					fraction = current_fraction;
+				}
+			} else if (tank_index == ignored_tank){
+				ignored_tank = -1;
+			}
+		}
+		
+		step *= fraction;
+		shot.position += step;
+		remaining_way -= step;
+		
+		if(tank_collision < 0 && fraction < 1){  // Wall collision
+			if(normal.x * shot.velocity.x < 0){
+				shot.velocity.x = -shot.velocity.x;
+				remaining_way.x = -remaining_way.x;
+			}
+			if(normal.y * shot.velocity.y < 0){
+				shot.velocity.y = -shot.velocity.y;
+				remaining_way.y = -remaining_way.y;
+			}
+			collisions.push_back(shot.position);
+		}
+	}
+	
+	collisions.push_back(shot.position);
+	
+	return tank_collision;
+}

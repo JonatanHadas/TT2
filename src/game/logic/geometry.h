@@ -21,6 +21,8 @@ extern const Number TANK_REVERSE_SPEED;
 
 Point rotate(const Point& direction, const Point& rotation);
 
+double length(const Point& point);
+
 void normalize(Point& point);
 
 // random discrete direction
@@ -37,6 +39,15 @@ bool polygon_collision(
 	const vector<Point>& polygon1,
 	const vector<Point>& polygon2,
 	Collision& collision
+);
+
+bool polygon_moving_circle_collision(
+	const vector<Point>& polygon,
+	const Point& position,
+	const Point& velocity,
+	Number radius,
+	Point& normal,
+	Number& fraction
 );
 
 bool get_collision_displacement(const vector<Collision>& collisions, Point& displacement);

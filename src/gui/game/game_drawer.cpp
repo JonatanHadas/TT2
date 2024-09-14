@@ -24,6 +24,9 @@ BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 
 }
 
+constexpr int CIRCLE_RADIUS = 50;
+constexpr unsigned int CIRCLE_POINTS = 100;
+
 void BoardDrawer::draw(SDL_Renderer* renderer){
 	if(
 		texture == nullptr ||
@@ -37,6 +40,41 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		);
 	}
 	
+	if(circle_texture == nullptr){
+		circle_texture = make_unique<Texture>(renderer,
+			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2
+		);
+		
+		circle_texture->do_with_texture(renderer, [&](){
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+			SDL_RenderClear(renderer);
+			
+			vector<SDL_Vertex> vertices;
+			vector<int> indices;
+			vertices.push_back({
+				.position = { .x = CIRCLE_RADIUS, .y = CIRCLE_RADIUS },
+				.color = { .r = 255, .g = 255, .b = 255, .a = 255 },
+				.tex_coord = { .x = 0, .y = 0 }
+			});
+			for(int i = 0; i < CIRCLE_POINTS; i++){
+				double angle = 2 * M_PI * i / CIRCLE_POINTS;
+				vertices.push_back({
+					.position = { .x = CIRCLE_RADIUS * (float)(1 + cos(angle)), .y = CIRCLE_RADIUS * (float)(1 + sin(angle)) },
+					.color = { .r = 255, .g = 255, .b = 255, .a = 255 },
+					.tex_coord = { .x = 0, .y = 0 }
+				});
+				indices.push_back(0);
+				indices.push_back(i + 1);
+				indices.push_back((i + 1) % CIRCLE_POINTS + 1);
+			}
+			SDL_RenderGeometry(
+				renderer, NULL,
+				&vertices[0], vertices.size(),
+				&indices[0], indices.size()
+			);
+		});
+	}
 	if(tank_texture == nullptr){
 		tank_texture = make_unique<Texture>(renderer,
 			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
@@ -86,13 +124,27 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			}
 		}
 		
+		auto shots = view->get_shots();
+		for(const auto& shot: shots){
+			SDL_Rect shot_rect;
+			shot_rect.w = shot_rect.h = DRAW_SCALE * shot.state.radius * 2;
+			
+			shot_rect.x = DRAW_SCALE * (shot.state.position.x + WALL_WIDTH)- shot_rect.w / 2;
+			shot_rect.y = DRAW_SCALE * (shot.state.position.y + WALL_WIDTH)- shot_rect.h / 2;
+			
+			SDL_SetTextureColorMod(circle_texture->get(), 0, 0, 0);
+			SDL_SetTextureAlphaMod(circle_texture->get(), 255);
+			
+			SDL_RenderCopy(renderer, circle_texture->get(), NULL, &shot_rect);
+		}
+		
 		auto tank_states = view->get_states();
 		for(int i = 0; i < tank_states.size(); i++){
 			SDL_Rect tank_rect;
 			tank_rect.w = DRAW_SCALE * TANK_WIDTH;
 			tank_rect.h = DRAW_SCALE * TANK_LENGTH;
-			tank_rect.x = (tank_states[i].position.x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
-			tank_rect.y = (tank_states[i].position.y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
+			tank_rect.x = (tank_states[i]->position.x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
+			tank_rect.y = (tank_states[i]->position.y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
 			
 			SDL_SetTextureColorMod(
 				tank_texture->get(),
@@ -104,7 +156,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 				renderer,
 				tank_texture->get(),
 				NULL, &tank_rect,
-				angle(tank_states[i].direction), NULL,
+				angle(tank_states[i]->direction), NULL,
 				SDL_FLIP_NONE
 			);
 		}

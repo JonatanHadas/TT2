@@ -63,4 +63,21 @@ public:
 	static TankState deserialize(istream& input);
 };
 
+class ShotDetails{
+public:
+	ShotDetails(
+		const Point& position,
+		const Point& velocity,
+		Number radius,
+		int timer
+	);
+	
+	Point position, velocity;
+	Number radius;
+	int timer;
+	
+	void serialize(ostream& output) const;
+	static ShotDetails deserialize(istream& input);
+};
+
 #endif

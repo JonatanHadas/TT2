@@ -52,12 +52,12 @@ public:
 		const Point& position,
 		const Point& direction,
 		const KeyState& key_state,
-		bool active
+		bool active, bool alive
 	);
 
 	Point position, direction;
 	KeyState key_state;
-	bool active;
+	bool active, alive;
 	
 	void serialize(ostream& output) const;
 	static TankState deserialize(istream& input);

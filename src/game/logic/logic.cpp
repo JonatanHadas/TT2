@@ -17,7 +17,7 @@ static inline vector<Point> get_maze_rect(int left, int right, int top, int bott
 
 vector<vector<Point>> get_maze_polygons(int x, int y, const Maze& maze){
 	vector<vector<Point>> polygons;
-	
+
 	if(maze.has_hwall_below(x, y)){
 		polygons.push_back(get_maze_rect(
 			x - (maze.has_hwall_below(x - 1, y) ? 1 : 0),
@@ -46,7 +46,7 @@ vector<vector<Point>> get_maze_polygons(int x, int y, const Maze& maze){
 			y + (maze.has_vwall_right(x - 1, y + 1) ? 2 : 1)
 		));
 	}
-	
+
 	if(!(maze.has_hwall_below(x, y) || maze.has_vwall_right(x, y))){
 		auto hwall = maze.has_hwall_below(x + 1, y), vwall = maze.has_vwall_right(x, y + 1);
 		if(hwall || vwall) polygons.push_back(get_maze_rect(
@@ -94,7 +94,7 @@ vector<Point> get_rotated_rectangle(
 
 vector<Collision> get_tank_collisions(const TankState& tank, const Maze& maze){
 	vector<Collision> collisions;
-	
+
 	const auto rect = get_rotated_rectangle(
 		tank.position,
 		tank.direction,
@@ -111,7 +111,7 @@ vector<Collision> get_tank_collisions(const TankState& tank, const Maze& maze){
 			collisions.push_back(collision);
 		}
 	}
-	
+
 	return collisions;
 }
 
@@ -145,14 +145,14 @@ void advance_tank(TankState& tank, const Maze& maze){
 			tank.position = previous_position;
 		}
 	}
-	
-	
+
+
 	Number speed = (
 		tank.key_state.forward ? TANK_SPEED : Number(0)
 	) - (
 		tank.key_state.back ? TANK_REVERSE_SPEED : Number(0)
 	);
-	
+
 	if(speed != 0){
 		Point previous_direction = tank.direction;
 		Point previous_position = tank.position;
@@ -183,9 +183,9 @@ int advance_shot(
 	vector<Point>& collisions
 ){	
 	Point remaining_way = shot.velocity;
-	
+
 	int tank_collision = -1;
-	
+
 	bool finished = false;
 
 	while(!finished){
@@ -220,6 +220,8 @@ int advance_shot(
 		}
 		
 		for(int tank_index = 0; tank_index < tanks.size(); tank_index++){
+			if(!tanks[tank_index]->alive) continue;
+
 			auto polygon = get_rotated_rectangle(
 				tanks[tank_index]->position,
 				tanks[tank_index]->direction,
@@ -261,8 +263,8 @@ int advance_shot(
 			collisions.push_back(shot.position);
 		}
 	}
-	
+
 	collisions.push_back(shot.position);
-	
+
 	return tank_collision;
 }

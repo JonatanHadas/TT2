@@ -23,9 +23,9 @@ Game::Game(
 
 void Game::new_round(){
 	round_num += 1;
-	
+
 	round = make_unique<Round>(*this, maze_generation);
-	
+
 	for(auto& tank: tanks){
 		tank.reset(round->get_maze().get_w(), round->get_maze().get_h());
 	}
@@ -71,7 +71,7 @@ vector<ShotPath> Game::get_shots() const{
 			.path=entry.second->get_path()
 		}))	;
 	}
-	
+
 	return shots;
 }
 
@@ -80,6 +80,10 @@ void Game::advance(){
 }
 
 void Game::allow_step(){}
+
+void Game::kill_tank(int index){
+	tanks[index].kill();
+}
 
 Round::Round(Game& game, MazeGeneration maze_generation) :
 	game(game),
@@ -110,7 +114,7 @@ const map<int, unique_ptr<Shot>>& Round::get_shots() const{
 }
 
 void Round::step(){
-	
+
 	vector<int> removed_ids;
 	for(const auto& shot_entry: shots){
 		if(shot_entry.second->advance(game)){
@@ -135,7 +139,7 @@ bool ShotManager::step(const TankState& owner_state, Round& round){
 	vector<int> removed_shots;
 	for(int shot: shots) if(round.get_shot(shot) == nullptr) removed_shots.push_back(shot);
 	for(int shot: removed_shots) shots.erase(shot);
-	
+
 	if(owner_state.key_state.shoot && shots.size() < MAX_SHOTS){
 		shots.insert(round.add_shot(make_unique<Shot>(ShotDetails(
 			owner_state.position + owner_state.direction * CANNON_LENGTH,
@@ -159,9 +163,10 @@ Tank::Tank(Game& game, int index) :
 		{ .x = -1, .y = -1 } /*position*/,
 		{ .x = 1, .y = 0 } /*direction*/,
 		KeyState(),
-		true /*active*/
+		true /*active*/,
+		true /*alive*/
 	) {
-	
+
 }
 
 const TankState& Tank::get_state() const{
@@ -170,12 +175,14 @@ const TankState& Tank::get_state() const{
 void Tank::reset(int maze_w, int maze_h){
 	state.position.x = Number(2 * rand_range(0, maze_w) + 1) / 2;
 	state.position.y = Number(2 * rand_range(0, maze_h) + 1) / 2;
-	
+
 	state.direction = random_direction();
 	state.key_state = KeyState();
 	pending_keys.clear();
-	
+
 	shot_manager.reset();
+
+	state.alive = true;
 }
 
 void Tank::step(int round, KeyState key_state){
@@ -198,20 +205,26 @@ void Tank::advance(Round& round){
 		state.key_state = KeyState();
 	}
 
+	if(!state.alive) return;
+
 	advance_tank(state, game.get_maze());
-	
+
 	shot_manager.step(state, round);
+}
+
+void Tank::kill(){
+	state.alive = false;
 }
 
 bool Projectile::advance(Game& game){
 	vector<int> killed_tanks;
-	
+
 	bool finished = step(game.get_maze(), game.get_states(), killed_tanks);
-	
-	for(auto tank: killed_tanks){
-		// Kill tank
+
+	for(int tank: killed_tanks){
+		game.kill_tank(tank);
 	}
-	
+
 	return finished;
 }
 

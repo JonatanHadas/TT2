@@ -24,7 +24,7 @@ class Game : public GameView, public GameAdvancer {
 	const MazeGeneration maze_generation;
 	unique_ptr<Round> round;
 	int round_num;
-	
+
 	vector<Tank> tanks;
 
 	void new_round();
@@ -36,9 +36,9 @@ public:
 		MazeGeneration maze_generation,
 		int tank_num
 	);
-	
+
 	PlayerInterface& get_player_interface(int player);
-	
+
 	int get_round() const;
 	const Maze& get_maze() const;
 	vector<const TankState*> get_states() const;
@@ -46,6 +46,8 @@ public:
 
 	void advance();
 	void allow_step();
+
+	void kill_tank(int index);
 };
 
 class WeaponManager{
@@ -74,15 +76,17 @@ class Tank : public PlayerInterface{
 	deque<KeyState> pending_keys;
 public:
 	Tank(Game& game, int index);
-	
+
 	const TankState& get_state() const;
 	void reset(int maze_w, int maze_h);
-	
+
 	void step(int round, KeyState key_state);
 	void set_active(bool active);
-	
+
 	bool can_advance() const;
 	void advance(Round& round);
+
+	void kill();
 };
 
 class Projectile{
@@ -106,14 +110,14 @@ protected:
 	);
 public:
 	Shot(ShotDetails&& details, int shooter);
-	
+
 	const ShotDetails& get_state() const;
 	const vector<Point>& get_path() const;
 };
 
 class Round{
 	Game& game;
-	
+
 	int next_id;
 	map<int, unique_ptr<Shot>> shots;
 
@@ -122,9 +126,9 @@ public:
 	Round(Game& game, MazeGeneration maze_generation);
 
 	const Maze& get_maze() const;
-	
+
 	void step();
-	
+
 	int add_shot(unique_ptr<Shot>&& shot);
 	void remove_shot(int shot_id);
 	Shot* get_shot(int shot_id) const;

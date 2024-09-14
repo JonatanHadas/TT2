@@ -44,43 +44,26 @@ KeyState::KeyState(
 	bool shoot
 ) : left(left), right(right), forward(forward), back(back), shoot(shoot) {}
 
-#define LEFT_MASK (1<<0)
-#define RIGHT_MASK (1<<1)
-#define FORWARD_MASK (1<<2)
-#define BACK_MASK (1<<3)
-#define SHOOT_MASK (1<<4)
-
 void KeyState::serialize(ostream& output) const{
-	unsigned char mask = 0;
-	if(left) mask |= LEFT_MASK;
-	if(right) mask |= RIGHT_MASK;
-	if(forward) mask |= FORWARD_MASK;
-	if(back) mask |= BACK_MASK;
-	if(shoot) mask |= SHOOT_MASK;
-	serialize_value(output, mask);
+	serialize_flags(output, left, right, forward, back, shoot);
 }
 KeyState KeyState::deserialize(istream& input){
-	auto mask = deserialize_value<unsigned char>(input);
+	auto [left, right, forward, back, shoot] = deserialize_flags<5>(input);
 	
-	return KeyState(
-		mask & LEFT_MASK,
-		mask & RIGHT_MASK,
-		mask & FORWARD_MASK,
-		mask & BACK_MASK,
-		mask & SHOOT_MASK
-	);
+	return KeyState(left, right, forward, back, shoot);
 }
 
 TankState::TankState(
 	const Point& position,
 	const Point& direction,
 	const KeyState& key_state,
-	bool active
+	bool active, bool alive
 ) :
 	position(position),
 	direction(direction),
 	key_state(key_state),
-	active(active) {
+	active(active),
+	alive(alive) {
 		
 }
 
@@ -88,19 +71,19 @@ void TankState::serialize(ostream& output) const{
 	serialize_value(output, position);
 	serialize_value(output, direction);
 	serialize_value(output, key_state);
-	serialize_value(output, active);
+	serialize_flags(output, active, alive);
 }
 TankState TankState::deserialize(istream& input){
 	auto position = deserialize_value<Point>(input);
 	auto direction = deserialize_value<Point>(input);
 	auto key_state = deserialize_value<KeyState>(input);
-	auto active = deserialize_value<bool>(input);
+	auto [active, alive] = deserialize_flags<2>(input);
 	
 	return TankState(
 		position,
 		direction,
 		key_state,
-		active
+		active, alive
 	);
 }
 

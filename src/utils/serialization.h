@@ -5,6 +5,7 @@
 #include <ostream>
 #include <istream>
 #include <vector>
+#include <array>
 
 using namespace std;
 
@@ -125,5 +126,25 @@ public:
 		return result;
 	}
 };
+
+void serialize_flags(
+	ostream& output,
+	bool flag1 = false,
+	bool flag2 = false,
+	bool flag3 = false,
+	bool flag4 = false,
+	bool flag5 = false,
+	bool flag6 = false,
+	bool flag7 = false,
+	bool flag8 = false
+);
+
+template<int N>
+array<bool, N> deserialize_flags(istream& input){
+	auto mask = deserialize_value<unsigned char>(input);
+	array<bool, N> result;
+	for(int i = 0; i < N; i++) result[i] = mask & (1 << i);
+	return result;
+}
 
 #endif

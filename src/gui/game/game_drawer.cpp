@@ -140,6 +140,8 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		
 		auto tank_states = view->get_states();
 		for(int i = 0; i < tank_states.size(); i++){
+			if(!tank_states[i]->alive) continue;
+			
 			SDL_Rect tank_rect;
 			tank_rect.w = DRAW_SCALE * TANK_WIDTH;
 			tank_rect.h = DRAW_SCALE * TANK_LENGTH;

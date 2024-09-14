@@ -6,12 +6,12 @@ SYS = $(shell uname)
 DBG_FLAGS = -g
 
 ifeq ($(SYS), Linux)
-	CMP_FLAGS = -I"/usr/include/SDL2" $(DBG_FLAGS)
+	CMP_FLAGS = -I"/usr/include/SDL2" -std=c++17 $(DBG_FLAGS)
 	LNK_FLAGS = -lSDL2main -lSDL2
 	EXEC_EXT = 
 else
 ifeq ($(findstring MINGW32, $(SYS)), MINGW32)
-	CMP_FLAGS = -I"C:\MinGW\include\SDL2" $(DBG_FLAGS)
+	CMP_FLAGS = -I"C:\MinGW\include\SDL2" -std=c++17 $(DBG_FLAGS)
 	LNK_FLAGS = -L"C:\MinGW\lib" -lmingw32 -lSDL2main -lSDL2 -lwinmm
 	EXEC_EXT = .exe
 else
@@ -23,6 +23,7 @@ endif
 
 HEADS_utils/utils := utils/utils
 HEADS_utils/numbers := utils/numbers	
+HEADS_utils/serialization := utils/serialization
 
 ## Game objects
 
@@ -63,7 +64,7 @@ HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/ut
 
 CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset
 SERVER_OBJECTS := 
-COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings game/logic/logic
+COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings game/logic/logic utils/serialization
 
 CLIENT_EXEC := tank_trouble
 SERVER_EXEC := server

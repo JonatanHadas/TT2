@@ -61,8 +61,12 @@ int main(int argc, char** argv){
 	GameSettings settings(
 		colors
 	);
+	
+	set<Upgrade::Type> allowed_upgrades({
+		Upgrade::Type::GATLING
+	});
 
-	Game game(MazeGeneration::EXPAND_TREE, settings.colors.size());
+	Game game(MazeGeneration::EXPAND_TREE, allowed_upgrades, settings.colors.size());
 	
 	map<PlayerInterface*, unique_ptr<Controller>> controllers;
 	controllers.insert(make_pair(

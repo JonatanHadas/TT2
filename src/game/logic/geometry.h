@@ -19,6 +19,9 @@ extern const Number TANK_LENGTH;
 extern const Number TANK_SPEED;
 extern const Number TANK_REVERSE_SPEED;
 
+extern const Number UPGRADE_SIZE;
+extern const Point UPGRADE_ROTATION;
+
 Point rotate(const Point& direction, const Point& rotation);
 
 double length(const Point& point);

@@ -13,4 +13,6 @@ int advance_shot(
 	vector<Point>& collisions
 );
 
+bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade);
+
 #endif

@@ -63,6 +63,19 @@ public:
 	static TankState deserialize(istream& input);
 };
 
+class Upgrade {
+public:
+	enum class Type : unsigned char{
+		GATLING = 0
+	} type;
+	int x, y;
+	
+	Upgrade(int x, int y, Type type);
+
+	void serialize(ostream& output) const;
+	static Upgrade deserialize(istream& input);
+};
+
 class ShotDetails{
 public:
 	ShotDetails(

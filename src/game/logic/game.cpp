@@ -8,9 +8,11 @@
 
 Game::Game(
 	MazeGeneration maze_generation,
+	const set<Upgrade::Type> allowed_upgrades,
 	int tank_num
 ) :
 	maze_generation(maze_generation),
+	allowed_upgrades(allowed_upgrades.begin(), allowed_upgrades.end()),
 	tanks(),
 	round_num(-1) {
 		
@@ -24,7 +26,7 @@ Game::Game(
 void Game::new_round(){
 	round_num += 1;
 
-	round = make_unique<Round>(*this, maze_generation);
+	round = make_unique<Round>(*this, maze_generation, allowed_upgrades);
 
 	for(auto& tank: tanks){
 		tank.reset(round->get_maze().get_w(), round->get_maze().get_h());
@@ -56,10 +58,14 @@ int Game::get_round() const{
 const Maze& Game::get_maze() const{
 	return round->get_maze();
 }
-vector<const TankState*> Game::get_states() const{
-	vector<const TankState*> states;
+vector<TankCompleteState> Game::get_states() const{
+	vector<TankCompleteState> states;
 	for(const auto& tank: tanks){
-		states.push_back(&tank.get_state());
+		const auto& upgrade = tank.get_upgrade();
+		states.push_back({
+			.state = tank.get_state(),
+			.upgrade = upgrade == nullptr ? nullptr : &upgrade->get_state(),
+		});
 	}
 	return states;
 }
@@ -74,6 +80,9 @@ vector<ShotPath> Game::get_shots() const{
 
 	return shots;
 }
+const set<unique_ptr<Upgrade>>& Game::get_upgrades() const{
+	return round->get_upgrades();
+}
 
 void Game::advance(){
 	while(can_step()) step();
@@ -84,10 +93,19 @@ void Game::allow_step(){}
 void Game::kill_tank(int index){
 	tanks[index].kill();
 }
+void Game::upgrade_tank(int index, Upgrade::Type type){
+	tanks[index].set_upgrade(type);
+}
 
-Round::Round(Game& game, MazeGeneration maze_generation) :
+
+const int MAX_UPGRADE_TIME = 120;
+const int MIN_UPGRADE_TIME = 60;
+
+Round::Round(Game& game, MazeGeneration maze_generation, const vector<Upgrade::Type>& allowed_upgrades) :
 	game(game),
+	allowed_upgrades(allowed_upgrades),
 	next_id(0),
+	upgrade_timer(rand_range(MIN_UPGRADE_TIME, MAX_UPGRADE_TIME)),
 	maze(generate_maze(maze_generation, rand_range(5, 12), rand_range(5, 12))) {
 
 }
@@ -113,6 +131,31 @@ const map<int, unique_ptr<Shot>>& Round::get_shots() const{
 	return shots;
 }
 
+const set<unique_ptr<Upgrade>>& Round::get_upgrades() const{
+	return upgrades;
+}
+
+void Round::create_upgrade(){
+	if(allowed_upgrades.empty()) return;
+
+	int x = rand_range(0, maze.get_w());
+	int y = rand_range(0, maze.get_h());
+	
+	for(const auto& upgrade: upgrades){
+		if(upgrade->x == x && upgrade->y == y) return;
+	}
+	for(const auto& tank: game.get_states()){
+		int tank_x = tank.state.position.x;
+		int tank_y = tank.state.position.y;
+		if(tank_x == x && tank_y == y) return;
+	}
+	
+	upgrades.insert(make_unique<Upgrade>(
+		x, y,
+		allowed_upgrades[rand_range(0, allowed_upgrades.size())]
+	));
+}
+
 void Round::step(){
 
 	vector<int> removed_ids;
@@ -123,6 +166,24 @@ void Round::step(){
 	}
 	for(int shot_id: removed_ids){
 		remove_shot(shot_id);
+	}
+	
+	upgrade_timer--;
+	if(upgrade_timer == 0){
+		create_upgrade();
+		upgrade_timer = rand_range(MIN_UPGRADE_TIME, MAX_UPGRADE_TIME);
+	}
+
+	const auto tanks = game.get_states();
+	for(int i = 0; i < tanks.size(); i++){
+		if(tanks[i].upgrade != nullptr) continue;
+		for(const auto& upgrade: upgrades){
+			if(check_upgrade_collision(tanks[i].state, *upgrade)){
+				game.upgrade_tank(i, upgrade->type);
+				upgrades.erase(upgrade);
+				break;
+			}
+		}
 	}
 }
 
@@ -148,18 +209,71 @@ bool ShotManager::step(const TankState& owner_state, Round& round){
 		), owner)));
 	}
 	pressed = owner_state.key_state.shoot;
-	return true;
+	return false;
 }
 
 void ShotManager::reset(){
 	shots.clear();
 }
 
+AppliedUpgrade::AppliedUpgrade(TankUpgradeState state) : state(state) {}
+const TankUpgradeState& AppliedUpgrade::get_state() const{
+	return state;
+}
+bool AppliedUpgrade::allow_moving() const{
+	return true;
+}
+
+
+const Number GATLING_RADIUS = Number(3)/200;
+const Number GATLING_SPEED = Number(1)/20;
+const Number GATLING_VARIANCE = Number(1)/12;
+const int GATLING_TTL = 600;
+const int GATLING_INTERVAL = 10;
+const int GATLING_START_TIME = 30;
+
+GatlingShotManager::GatlingShotManager(int owner) : 
+	AppliedUpgrade({
+		.type = Upgrade::Type::GATLING,
+		.state = 0,
+		.timer = -GATLING_START_TIME
+	}),
+	owner(owner),
+	released(false) {
+
+}
+
+bool GatlingShotManager::step(const TankState& owner_state, Round& round){
+	if(!released && !owner_state.key_state.shoot) released = true;
+	if(released){
+		if(state.state){
+			if(!owner_state.key_state.shoot) return true;
+			state.timer++;
+			if(state.timer >= 0 && state.timer % GATLING_INTERVAL == 0){
+				Point variance = { .x = 1, .y = rand_range(-1000, 1000) * GATLING_VARIANCE / 1000 };
+				normalize(variance);
+				
+				round.add_shot(make_unique<Shot>(ShotDetails(
+					owner_state.position + owner_state.direction * CANNON_LENGTH,
+					rotate(owner_state.direction, variance) * GATLING_SPEED,
+					GATLING_RADIUS, GATLING_TTL
+				), owner));
+			}
+			
+		} else if(owner_state.key_state.shoot){
+			state.state = 1;
+		}
+	}
+	return false;
+}
+void GatlingShotManager::reset(){}
+
 
 Tank::Tank(Game& game, int index) :
 	game(game),
 	index(index),
 	shot_manager(index),
+	upgrade(nullptr),
 	state(
 		{ .x = -1, .y = -1 } /*position*/,
 		{ .x = 1, .y = 0 } /*direction*/,
@@ -173,6 +287,17 @@ Tank::Tank(Game& game, int index) :
 const TankState& Tank::get_state() const{
 	return state;
 }
+const unique_ptr<AppliedUpgrade>& Tank::get_upgrade() const{
+	return upgrade;
+}
+void Tank::set_upgrade(Upgrade::Type type){
+	switch(type){
+	case Upgrade::Type::GATLING:
+		upgrade = make_unique<GatlingShotManager>(index);
+		break;
+	}
+}
+
 void Tank::reset(int maze_w, int maze_h){
 	state.position.x = Number(2 * rand_range(0, maze_w) + 1) / 2;
 	state.position.y = Number(2 * rand_range(0, maze_h) + 1) / 2;
@@ -182,6 +307,7 @@ void Tank::reset(int maze_w, int maze_h){
 	pending_keys.clear();
 
 	shot_manager.reset();
+	upgrade = nullptr;
 
 	state.alive = true;
 }
@@ -208,9 +334,16 @@ void Tank::advance(Round& round){
 
 	if(!state.alive) return;
 
-	advance_tank(state, game.get_maze());
-
-	shot_manager.step(state, round);
+	if(upgrade != nullptr){
+		if(upgrade->allow_moving()){
+			advance_tank(state, game.get_maze());
+		}
+		if(upgrade->step(state, round)) upgrade = nullptr;
+	}
+	else{
+		advance_tank(state, game.get_maze());
+		shot_manager.step(state, round);
+	}
 }
 
 void Tank::kill(){
@@ -219,8 +352,11 @@ void Tank::kill(){
 
 bool Projectile::advance(Game& game){
 	vector<int> killed_tanks;
+	
+	vector<const TankState*> tanks;
+	for(const auto& tank: game.get_states()) tanks.push_back(&tank.state);
 
-	bool finished = step(game.get_maze(), game.get_states(), killed_tanks);
+	bool finished = step(game.get_maze(), tanks, killed_tanks);
 
 	for(int tank: killed_tanks){
 		game.kill_tank(tank);

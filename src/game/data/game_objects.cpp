@@ -87,6 +87,21 @@ TankState TankState::deserialize(istream& input){
 	);
 }
 
+Upgrade::Upgrade(int x, int y, Type type) : x(x), y(y), type(type) {}
+
+void Upgrade::serialize(ostream& output) const{
+	serialize_value(output, x);
+	serialize_value(output, y);
+	serialize_value(output, (unsigned char)type);
+}
+Upgrade Upgrade::deserialize(istream& input){
+	auto x = deserialize_value<int>(input);
+	auto y = deserialize_value<int>(input);
+	auto type = (Upgrade::Type)deserialize_value<unsigned char>(input);
+	
+	return Upgrade(x, y, type);
+}
+
 ShotDetails::ShotDetails(
 	const Point& position,
 	const Point& velocity,

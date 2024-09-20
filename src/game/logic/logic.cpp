@@ -268,3 +268,18 @@ int advance_shot(
 
 	return tank_collision;
 }
+
+bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade){
+	Collision collision = { .position = { .x = 0, .y = 0 }, .normal = { .x = 0, .y = 0 }, .depth = 0 };
+	return polygon_collision(
+		get_rotated_rectangle(
+			tank.position, tank.direction,
+			TANK_WIDTH, TANK_LENGTH
+		),
+		get_rotated_rectangle(
+			{ .x = Number(2 * upgrade.x + 1) / 2, .y = Number(2 * upgrade.y + 1) / 2 },
+			UPGRADE_ROTATION, UPGRADE_SIZE, UPGRADE_SIZE
+		),
+		collision
+	);
+}

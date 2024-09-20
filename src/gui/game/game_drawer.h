@@ -17,7 +17,7 @@ class BoardDrawer{
 	int maze_w, maze_h;
 	unique_ptr<Texture> texture;
 
-	unique_ptr<Texture> tank_texture;  // Temp
+	unique_ptr<Texture> tank_texture, upgrade_texture;  // Temp
 	unique_ptr<Texture> circle_texture;
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);

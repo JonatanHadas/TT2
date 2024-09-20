@@ -22,6 +22,7 @@ class WeaponManager;
 
 class Game : public GameView, public GameAdvancer {
 	const MazeGeneration maze_generation;
+	const vector<Upgrade::Type> allowed_upgrades;
 	unique_ptr<Round> round;
 	int round_num;
 
@@ -34,6 +35,7 @@ class Game : public GameView, public GameAdvancer {
 public:
 	Game(
 		MazeGeneration maze_generation,
+		const set<Upgrade::Type> allowed_upgrades,
 		int tank_num
 	);
 
@@ -41,13 +43,15 @@ public:
 
 	int get_round() const;
 	const Maze& get_maze() const;
-	vector<const TankState*> get_states() const;
+	vector<TankCompleteState> get_states() const;
 	vector<ShotPath> get_shots() const;
+	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 
 	void advance();
 	void allow_step();
 
 	void kill_tank(int index);
+	void upgrade_tank(int index, Upgrade::Type type);
 };
 
 class WeaponManager{
@@ -67,19 +71,43 @@ public:
 	void reset();
 };
 
+
+class AppliedUpgrade : public WeaponManager{
+protected:
+	TankUpgradeState state;
+public:
+	AppliedUpgrade(TankUpgradeState state);
+
+	virtual bool allow_moving() const;
+	const TankUpgradeState& get_state() const;
+};
+
+class GatlingShotManager : public AppliedUpgrade{
+	const int owner;
+	bool released;
+public:
+	GatlingShotManager(int owner);
+	
+	bool step(const TankState& owner_state, Round& round);
+	void reset();
+};
+
 class Tank : public PlayerInterface{
 	Game& game;
 	const int index;
 
 	TankState state;
 	ShotManager shot_manager;
+	unique_ptr<AppliedUpgrade> upgrade;
 		
 	deque<KeyState> pending_keys;
 public:
 	Tank(Game& game, int index);
 
 	const TankState& get_state() const;
+	const unique_ptr<AppliedUpgrade>& get_upgrade() const;
 	void reset(int maze_w, int maze_h);
+	void set_upgrade(Upgrade::Type type);
 
 	void step(int round, KeyState key_state);
 	void set_active(bool active);
@@ -118,13 +146,18 @@ public:
 
 class Round{
 	Game& game;
+	const vector<Upgrade::Type>& allowed_upgrades;
 
 	int next_id;
 	map<int, unique_ptr<Shot>> shots;
 
+	set<unique_ptr<Upgrade>> upgrades;
+	int upgrade_timer;
+	void create_upgrade();
+
 	const Maze maze;
 public:
-	Round(Game& game, MazeGeneration maze_generation);
+	Round(Game& game, MazeGeneration maze_generation, const vector<Upgrade::Type>& allowed_upgrades);
 
 	const Maze& get_maze() const;
 
@@ -134,6 +167,8 @@ public:
 	void remove_shot(int shot_id);
 	Shot* get_shot(int shot_id) const;
 	const map<int, unique_ptr<Shot>>& get_shots() const;
+	
+	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 };
 
 #endif

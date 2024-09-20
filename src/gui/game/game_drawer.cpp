@@ -20,6 +20,7 @@ static inline double angle(const Point& point){
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 	view(view),
 	settings(settings),
+	circle_texture(nullptr),
 	texture(nullptr) {
 
 }
@@ -98,6 +99,23 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			SDL_RenderFillRect(renderer, &rect);
 		});
 	}
+	if(upgrade_texture == nullptr){
+		upgrade_texture = make_unique<Texture>(renderer,
+			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			DRAW_SCALE * UPGRADE_SIZE, DRAW_SCALE * UPGRADE_SIZE
+		);
+		upgrade_texture->do_with_texture(renderer, [&](){
+			SDL_SetRenderDrawColor(renderer, 224, 224, 224, 255);
+			SDL_RenderClear(renderer);
+			
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+			SDL_Rect rect;
+			rect.x = rect.y = 0;
+			rect.w = DRAW_SCALE * UPGRADE_SIZE;
+			rect.h = DRAW_SCALE * UPGRADE_SIZE;
+			SDL_RenderDrawRect(renderer, &rect);
+		});
+	}
 	
 	texture->do_with_texture(renderer, [&](){
 		SDL_SetRenderDrawColor(renderer, board_color.r, board_color.g, board_color.b, board_color.a);
@@ -124,6 +142,21 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			}
 		}
 		
+		SDL_Rect upgrade_rect;
+		upgrade_rect.w = upgrade_rect.h = UPGRADE_SIZE * DRAW_SCALE;
+		for(const auto& upgrade: view->get_upgrades()){
+			upgrade_rect.x = DRAW_SCALE * (upgrade->x + Number(1) / 2 + WALL_WIDTH ) - upgrade_rect.w / 2;
+			upgrade_rect.y = DRAW_SCALE * (upgrade->y + Number(1) / 2 + WALL_WIDTH ) - upgrade_rect.h / 2;
+			
+			SDL_RenderCopyEx(
+				renderer,
+				upgrade_texture->get(),
+				NULL, &upgrade_rect,
+				angle(UPGRADE_ROTATION), NULL,
+				SDL_FLIP_NONE
+			);
+		}
+		
 		auto shots = view->get_shots();
 		for(const auto& shot: shots){
 			SDL_Rect shot_rect;
@@ -140,13 +173,13 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		
 		auto tank_states = view->get_states();
 		for(int i = 0; i < tank_states.size(); i++){
-			if(!tank_states[i]->alive) continue;
+			if(!tank_states[i].state.alive) continue;
 			
 			SDL_Rect tank_rect;
 			tank_rect.w = DRAW_SCALE * TANK_WIDTH;
 			tank_rect.h = DRAW_SCALE * TANK_LENGTH;
-			tank_rect.x = (tank_states[i]->position.x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
-			tank_rect.y = (tank_states[i]->position.y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
+			tank_rect.x = (tank_states[i].state.position.x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
+			tank_rect.y = (tank_states[i].state.position.y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
 			
 			SDL_SetTextureColorMod(
 				tank_texture->get(),
@@ -158,7 +191,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 				renderer,
 				tank_texture->get(),
 				NULL, &tank_rect,
-				angle(tank_states[i]->direction), NULL,
+				angle(tank_states[i].state.direction), NULL,
 				SDL_FLIP_NONE
 			);
 		}

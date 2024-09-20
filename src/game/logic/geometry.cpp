@@ -23,6 +23,12 @@ const Number TANK_LENGTH = Number(45) / 100;
 const Number TANK_SPEED = Number(3) / 100;
 const Number TANK_REVERSE_SPEED = TANK_SPEED / 2;
 
+const Number UPGRADE_SIZE = Number(30) / 100;
+const Point UPGRADE_ROTATION = {
+	.x = cos(M_PI / 6),
+	.y = Number(1) / 2,
+};
+
 Point rotate(const Point& direction, const Point& rotation) {
 	return {
 		.x = direction.x * rotation.x - direction.y * rotation.y,

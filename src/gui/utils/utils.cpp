@@ -1,10 +1,17 @@
 #include "utils.h"
 
-Texture::Texture(SDL_Renderer* renderer,
+Texture::Texture(
+	SDL_Renderer* renderer,
 	unsigned int format, int access,
 	int width, int height
 	) : 
 	texture(SDL_CreateTexture(renderer, format, access, width, height)){}
+
+Texture::Texture(
+	SDL_Renderer* renderer,
+	SDL_Surface* surface
+	) : 
+	texture(SDL_CreateTextureFromSurface(renderer, surface)){}
 
 Texture::Texture(Texture&& inst) :
 	texture(inst.texture) {
@@ -23,7 +30,7 @@ Texture::~Texture(){
 	if(NULL != texture) SDL_DestroyTexture(texture);
 }
 
-SDL_Texture* Texture::get(){
+SDL_Texture* Texture::get() const{
 	return texture;
 }
 

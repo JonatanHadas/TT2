@@ -1,10 +1,14 @@
 #include "game_drawer.h"
 
+#include "../utils/images.h"
+
 #include "../utils/colors.h"
 
 #include "../../game/logic/geometry.h"
 
 #include "../../game/logic/logic.h"
+
+#include <map>
 
 #define DRAW_SCALE 100
 
@@ -16,6 +20,12 @@ static inline double angle(const Point& point){
 	
 	return RAD2DEG(atan2((double)point.x, (double)-point.y));
 }
+
+#define UPGRADES "upgrades/"
+
+const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
+	{ Upgrade::Type::GATLING, register_image(UPGRADES "gatling") },
+});
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 	view(view),
@@ -99,23 +109,6 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			SDL_RenderFillRect(renderer, &rect);
 		});
 	}
-	if(upgrade_texture == nullptr){
-		upgrade_texture = make_unique<Texture>(renderer,
-			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			DRAW_SCALE * UPGRADE_SIZE, DRAW_SCALE * UPGRADE_SIZE
-		);
-		upgrade_texture->do_with_texture(renderer, [&](){
-			SDL_SetRenderDrawColor(renderer, 224, 224, 224, 255);
-			SDL_RenderClear(renderer);
-			
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-			SDL_Rect rect;
-			rect.x = rect.y = 0;
-			rect.w = DRAW_SCALE * UPGRADE_SIZE;
-			rect.h = DRAW_SCALE * UPGRADE_SIZE;
-			SDL_RenderDrawRect(renderer, &rect);
-		});
-	}
 	
 	texture->do_with_texture(renderer, [&](){
 		SDL_SetRenderDrawColor(renderer, board_color.r, board_color.g, board_color.b, board_color.a);
@@ -150,7 +143,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			
 			SDL_RenderCopyEx(
 				renderer,
-				upgrade_texture->get(),
+				upgrade_textures.at(upgrade->type)->get(),
 				NULL, &upgrade_rect,
 				angle(UPGRADE_ROTATION), NULL,
 				SDL_FLIP_NONE

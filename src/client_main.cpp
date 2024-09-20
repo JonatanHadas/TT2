@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <SDL.h>
+#include <SDL_image.h>
 
 #include "gui/gui.h"
+#include "gui/utils/images.h"
 #include "gui/game/game_gui.h"
 #include "gui/controls/keyset.h"
 #include "game/logic/game.h"
@@ -49,6 +51,11 @@ int main(int argc, char** argv){
 		return 3;
 	}
 	atexit(close_rend);
+
+	if(!load_images(renderer)){
+		cerr << "Error while loading images" << endl << SDL_GetError() << IMG_GetError() << endl;
+		return 0;
+	}
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "best");
 

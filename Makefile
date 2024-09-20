@@ -7,12 +7,12 @@ DBG_FLAGS = -g
 
 ifeq ($(SYS), Linux)
 	CMP_FLAGS = -I"/usr/include/SDL2" -std=c++17 $(DBG_FLAGS)
-	LNK_FLAGS = -lSDL2main -lSDL2
+	LNK_FLAGS = -lSDL2main -lSDL2 -lSDL2_image
 	EXEC_EXT = 
 else
 ifeq ($(findstring MINGW32, $(SYS)), MINGW32)
 	CMP_FLAGS = -I"C:\MinGW\include\SDL2" -std=c++17 $(DBG_FLAGS)
-	LNK_FLAGS = -L"C:\MinGW\lib" -lmingw32 -lSDL2main -lSDL2 -lwinmm
+	LNK_FLAGS = -L"C:\MinGW\lib" -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lwinmm
 	EXEC_EXT = .exe
 else
 	$(info Unsupported system $(SYS))
@@ -48,6 +48,7 @@ HEADS_gui/gui := gui/gui gui/utils/clock
 HEADS_gui/utils/utils := gui/utils/utils
 HEADS_gui/utils/colors := gui/utils/colors
 HEADS_gui/utils/clock := gui/utils/clock
+HEADS_gui/utils/images := gui/utils/images gui/utils/utils
 
 # Controlls
 
@@ -55,14 +56,14 @@ HEAD_gui/controls/keyset := gui/controls/keyset gui/controls/controller game/dat
 
 # Game
 
-HEADS_gui/game/game_drawer := gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/data/game_objects utils/numbers game/data/game_settings
+HEADS_gui/game/game_drawer := gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/data/game_objects utils/numbers game/data/game_settings gui/utils/images
 HEADS_gui/game/game_gui := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/numbers game/data/game_settings gui/controls/keyset gui/controls/controller
 
 ## Executables
 
 HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller
 
-CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset
+CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset gui/utils/images
 SERVER_OBJECTS := 
 COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings game/logic/logic utils/serialization
 

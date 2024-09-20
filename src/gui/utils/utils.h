@@ -14,6 +14,10 @@ public:
 		unsigned int format, int access,
 		int width, int height
 	);
+	Texture(
+		SDL_Renderer* renderer,
+		SDL_Surface* surface
+	);
 	
 	Texture(const Texture& inst) = delete;
 	Texture(Texture&& inst);
@@ -23,7 +27,7 @@ public:
 	
 	~Texture();
 	
-	SDL_Texture* get();
+	SDL_Texture* get() const;
 	SDL_Texture* move_out();
 	
 	void do_with_texture(SDL_Renderer* renderer, function<void()> todo);

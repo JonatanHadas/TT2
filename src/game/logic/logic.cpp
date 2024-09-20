@@ -242,8 +242,6 @@ int advance_shot(
 					tank_collision = tank_index;
 					fraction = current_fraction;
 				}
-			} else if (tank_index == ignored_tank){
-				ignored_tank = -1;
 			}
 		}
 		

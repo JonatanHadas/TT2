@@ -12,6 +12,9 @@
 
 #define DRAW_SCALE 100
 
+const Number CANNON_WIDTH = Number(30) / 100;
+const Number CANNON_LENGTH = Number(54) / 100;
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #define RAD2DEG(x) ((x)*180 / M_PI)
@@ -37,6 +40,21 @@ BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 
 constexpr int CIRCLE_RADIUS = 50;
 constexpr unsigned int CIRCLE_POINTS = 100;
+
+const Texture& get_cannon_image(const TankUpgradeState* upgrade, const TankImage& image){
+	if(upgrade == nullptr) return image.cannon;
+	
+	switch(upgrade->type){
+	case Upgrade::Type::GATLING: 
+	{
+		int index = upgrade->timer % GATLING_IMAGE_CNT;
+		if(index < 0) index += GATLING_IMAGE_CNT;
+		return image.gatling[index];
+	}
+	default:
+		return image.cannon;
+	}
+}
 
 void BoardDrawer::draw(SDL_Renderer* renderer){
 	if(
@@ -86,28 +104,10 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			);
 		});
 	}
-	if(tank_texture == nullptr){
-		tank_texture = make_unique<Texture>(renderer,
-			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			DRAW_SCALE * TANK_WIDTH, DRAW_SCALE * TANK_LENGTH
-		);
-		tank_texture->do_with_texture(renderer, [&](){
-			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-			SDL_RenderClear(renderer);
-			
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-			SDL_Rect rect;
-			rect.x = rect.y = 0;
-			rect.w = DRAW_SCALE * TANK_WIDTH;
-			rect.h = DRAW_SCALE * TANK_LENGTH;
-			SDL_RenderDrawRect(renderer, &rect);
-			
-			rect.w = DRAW_SCALE * TANK_WIDTH / 10;
-			rect.h = DRAW_SCALE * TANK_LENGTH / 2;
-			rect.x = (DRAW_SCALE * TANK_WIDTH - rect.w) / 2;
-			rect.y = 0;
-			SDL_RenderFillRect(renderer, &rect);
-		});
+	if(tank_images.empty()){
+		for(int i = 0; i < view->get_states().size(); i++){
+			tank_images.push_back(TANK_TEXTURES[i]->get_tank_image(renderer));
+		}
 	}
 	
 	texture->do_with_texture(renderer, [&](){
@@ -168,23 +168,33 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		for(int i = 0; i < tank_states.size(); i++){
 			if(!tank_states[i].state.alive) continue;
 			
+			Number draw_x = (tank_states[i].state.position.x + WALL_WIDTH) * DRAW_SCALE;
+			Number draw_y = (tank_states[i].state.position.y + WALL_WIDTH) * DRAW_SCALE;
+			auto direction = angle(tank_states[i].state.direction);
+			
 			SDL_Rect tank_rect;
 			tank_rect.w = DRAW_SCALE * TANK_WIDTH;
 			tank_rect.h = DRAW_SCALE * TANK_LENGTH;
-			tank_rect.x = (tank_states[i].state.position.x + WALL_WIDTH) * DRAW_SCALE - tank_rect.w / 2;
-			tank_rect.y = (tank_states[i].state.position.y + WALL_WIDTH) * DRAW_SCALE - tank_rect.h / 2;
+			tank_rect.x = draw_x - tank_rect.w / 2;
+			tank_rect.y = draw_y - tank_rect.h / 2;
 			
-			SDL_SetTextureColorMod(
-				tank_texture->get(),
-				tank_colors[settings.colors[i]].r,
-				tank_colors[settings.colors[i]].g,
-				tank_colors[settings.colors[i]].b
-			);
 			SDL_RenderCopyEx(
 				renderer,
-				tank_texture->get(),
+				tank_images[i].body.get(),
 				NULL, &tank_rect,
-				angle(tank_states[i].state.direction), NULL,
+				direction, NULL,
+				SDL_FLIP_NONE
+			);
+			
+			tank_rect.w = DRAW_SCALE * CANNON_WIDTH;
+			tank_rect.h = DRAW_SCALE * CANNON_LENGTH;
+			tank_rect.x = draw_x - tank_rect.w / 2;
+			tank_rect.y = draw_y - tank_rect.h / 2;
+			SDL_RenderCopyEx(
+				renderer,
+				get_cannon_image(tank_states[i].upgrade, tank_images[i]).get(),
+				NULL, &tank_rect,
+				direction, NULL,
 				SDL_FLIP_NONE
 			);
 		}

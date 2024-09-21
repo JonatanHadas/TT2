@@ -6,6 +6,8 @@
 
 #include "../utils/utils.h"
 
+#include "tank_images.h"
+
 #include <memory>
 #include <SDL.h>
 
@@ -17,7 +19,7 @@ class BoardDrawer{
 	int maze_w, maze_h;
 	unique_ptr<Texture> texture;
 
-	unique_ptr<Texture> tank_texture;  // Temp
+	vector<TankImage> tank_images;
 	unique_ptr<Texture> circle_texture;
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);

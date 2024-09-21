@@ -64,7 +64,7 @@ int main(int argc, char** argv){
 	SDL_RenderSetLogicalSize(renderer, screen_w, screen_h);
 
 	vector<int> colors;
-	for(int i = 0; i < 3; i++) colors.push_back(i);
+	for(int i = 0; i < 14; i++) colors.push_back(i);
 	GameSettings settings(
 		colors
 	);
@@ -96,7 +96,7 @@ int main(int argc, char** argv){
 			.shoot=SDL_SCANCODE_TAB,
 		}))
 	));
-	game.get_player_interface(2).set_active(false);
+	for(int i = 2; i < colors.size(); i++) game.get_player_interface(i).set_active(false);
 	
 	GameGui gui(
 		&game,

@@ -158,15 +158,14 @@ void Round::create_upgrade(){
 }
 
 void Round::step(){
-
-	vector<int> removed_ids;
+	for(int shot_id: removed_shots){
+		remove_shot(shot_id);
+	}
+	removed_shots.clear();
 	for(const auto& shot_entry: shots){
 		if(shot_entry.second->advance(game)){
-			removed_ids.push_back(shot_entry.first);
+			removed_shots.insert(shot_entry.first);
 		}
-	}
-	for(int shot_id: removed_ids){
-		remove_shot(shot_id);
 	}
 	
 	upgrade_timer--;

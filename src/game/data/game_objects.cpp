@@ -106,12 +106,16 @@ ShotDetails::ShotDetails(
 	const Point& position,
 	const Point& velocity,
 	Number radius,
-	int timer
+	int timer,
+	Type type,
+	int owner
 ) :
 	position(position),
 	velocity(velocity),
 	radius(radius),
-	timer(timer) {
+	timer(timer),
+	type(type),
+	owner(owner) {
 		
 }
 
@@ -120,6 +124,8 @@ void ShotDetails::serialize(ostream& output) const {
 	serialize_value(output, velocity);
 	serialize_value(output, radius);
 	serialize_value(output, timer);
+	serialize_value(output, owner);
+	serialize_value(output, (unsigned char)(type));
 }
 
 ShotDetails ShotDetails::deserialize(istream& input){
@@ -127,10 +133,14 @@ ShotDetails ShotDetails::deserialize(istream& input){
 	auto velocity = deserialize_value<Point>(input);
 	auto radius = deserialize_value<Number>(input);
 	auto timer = deserialize_value<int>(input);
+	auto owner = deserialize_value<int>(input);
+	auto type = (ShotDetails::Type)deserialize_value<unsigned char>(input);
 	
 	return ShotDetails(
 		position, velocity,
 		radius,
-		timer
+		timer,
+		type,
+		owner
 	);
 }

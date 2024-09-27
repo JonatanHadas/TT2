@@ -56,18 +56,25 @@ public:
 
 class WeaponManager{
 public:
-	virtual bool step(const TankState& owner_state, Round& round) = 0;
+	virtual bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	) = 0;
 	virtual void reset() = 0;
 };
 
 class ShotManager : public WeaponManager{
 	const int owner;
-	bool pressed;
 	set<int> shots;
 public:
 	ShotManager(int owner);
 
-	bool step(const TankState& owner_state, Round& round);
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
 	void reset();
 };
 
@@ -80,16 +87,31 @@ public:
 
 	virtual bool allow_moving() const;
 	const TankUpgradeState& get_state() const;
+	virtual void reset();
 };
 
 class GatlingShotManager : public AppliedUpgrade{
 	const int owner;
-	bool released;
 public:
 	GatlingShotManager(int owner);
 	
-	bool step(const TankState& owner_state, Round& round);
-	void reset();
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
+};
+
+class LaserManager : public AppliedUpgrade{
+	const int owner;
+public:
+	LaserManager(int owner);
+	
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
 };
 
 class Tank : public PlayerInterface{
@@ -130,7 +152,7 @@ public:
 
 class Shot : public Projectile{
 	ShotDetails state;
-	vector<Point> path;
+	vector<TimePoint> path;
 	int ignored_tank;
 protected:
 	bool step(
@@ -138,10 +160,10 @@ protected:
 		vector<int>& killed_tanks
 	);
 public:
-	Shot(ShotDetails&& details, int shooter);
+	Shot(ShotDetails&& details);
 
 	const ShotDetails& get_state() const;
-	const vector<Point>& get_path() const;
+	const vector<TimePoint>& get_path() const;
 };
 
 class Round{

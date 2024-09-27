@@ -5,71 +5,87 @@
 #include <map>
 #include <functional>
 
-class Surface{
-	SDL_Surface* surface;
-public:
-	Surface(int w, int h, const SDL_PixelFormat& format) : surface(SDL_CreateRGBSurface(
-		0, w, h, format.BitsPerPixel,
-		format.Rmask, format.Gmask, format.Bmask, format.Amask
-	)) {}
-	explicit Surface(const string& path) : surface(IMG_Load(path.c_str())) {}
-	
-	Surface(const Surface&) = delete;
-	Surface(Surface&& other) : surface(other.surface) {
-		other.surface = nullptr;
-	}
-	
-	Surface& operator=(const Surface&) = delete;
-	Surface& operator=(Surface&& other){
-		surface = other.surface;
-		other.surface = nullptr;
-		return *this;
-	}
-	
-	~Surface(){
-		if(surface != nullptr) SDL_FreeSurface(surface); 
-	}
-	
-	SDL_Surface* get() const{
-		return surface;
-	}
-};
+Surface::Surface(int w, int h, const SDL_PixelFormat& format) : surface(SDL_CreateRGBSurface(
+	0, w, h, format.BitsPerPixel,
+	format.Rmask, format.Gmask, format.Bmask, format.Amask
+)) {}
+Surface::Surface(const string& path) : surface(IMG_Load(path.c_str())) {}
 
-class SurfaceLock{
-	Surface* surface;
-public:
-	explicit SurfaceLock(Surface& surface) : surface(&surface) {
-		if(surface.get() != nullptr) {
-			if(SDL_LockSurface(surface.get()) != 0){
-				this->surface = nullptr;
-			}
+Surface::Surface(Surface&& other) : surface(other.surface) {
+	other.surface = nullptr;
+}
+
+Surface& Surface::operator=(Surface&& other){
+	surface = other.surface;
+	other.surface = nullptr;
+	return *this;
+}
+
+Surface::~Surface(){
+	if(surface != nullptr) SDL_FreeSurface(surface); 
+}
+
+SDL_Surface* Surface::get() const{
+	return surface;
+}
+
+Uint32& Surface::get_pixel(int x, int y) const{
+	return *((Uint32*)(
+		((Uint8*)(surface->pixels))
+		+ (y * surface->pitch)
+		+ (x * surface->format->BytesPerPixel)
+	));
+}
+SDL_Color Surface::get_color(int x, int y) const{
+	SDL_Color color;
+	SDL_GetRGBA(
+		get_pixel(x, y), surface->format,
+		&color.r, &color.g, &color.b, &color.a
+	);
+	return color;
+}
+void Surface::set_color(int x, int y, SDL_Color color){
+	get_pixel(x, y) = SDL_MapRGBA(
+		surface->format,
+		color.r, color.g, color.b, color.a
+	);
+}
+
+
+SurfaceLock::SurfaceLock(Surface& surface) : surface(&surface) {
+	if(surface.get() != nullptr) {
+		if(SDL_LockSurface(surface.get()) != 0){
+			this->surface = nullptr;
 		}
 	}
-	
-	bool check() const{
-		return surface != nullptr;
-	}
-	
-	SurfaceLock(const SurfaceLock&) = delete;
-	SurfaceLock(SurfaceLock&& other) : surface(other.surface) {
-		other.surface = nullptr;
-	}
-	
-	SurfaceLock& operator=(const SurfaceLock&) = delete;
-	SurfaceLock& operator=(SurfaceLock&& other){
-		surface = other.surface;
-		other.surface = nullptr;
-		return *this;
-	}
-	
-	~SurfaceLock(){
-		if(surface != nullptr && surface->get() != nullptr) SDL_UnlockSurface(surface->get());
-	}
-};
+}
+
+bool SurfaceLock::check() const{
+	return surface != nullptr;
+}
+
+SurfaceLock::SurfaceLock(SurfaceLock&& other) : surface(other.surface) {
+	other.surface = nullptr;
+}
+
+SurfaceLock& SurfaceLock::operator=(SurfaceLock&& other){
+	surface = other.surface;
+	other.surface = nullptr;
+	return *this;
+}
+
+SurfaceLock::~SurfaceLock(){
+	if(surface != nullptr && surface->get() != nullptr) SDL_UnlockSurface(surface->get());
+}
 
 map<string, map<filter_t, unique_ptr<Texture>>>& get_images(){
 	static map<string, map<filter_t, unique_ptr<Texture>>> images;
 	return images;
+}
+
+map<string, unique_ptr<Surface>>& get_surfaces(){
+	static map<string, unique_ptr<Surface>> surfaces;
+	return surfaces;
 }
 
 const unique_ptr<Texture>& register_image(const string& name, filter_t filter){
@@ -78,14 +94,20 @@ const unique_ptr<Texture>& register_image(const string& name, filter_t filter){
 	return get_images()[name][filter];
 }
 
+const TextureImage register_texture(const string& name){
+	if(get_surfaces().count(name) == 0) get_surfaces().insert({name, nullptr});
+	return {
+		.texture = register_image(name),
+		.surface = get_surfaces()[name]
+	};
+}
+
 void free_images(){
 	for(auto& [name, textures]: get_images())
 		for(auto& [filter, texture]: textures)
 			texture = nullptr;
-}
-
-static inline Uint32& pixel(SDL_Surface* surface, int x, int y){
-	return *((Uint32*)((Uint8*)(surface->pixels) + (y * surface->pitch) + (x * surface->format->BytesPerPixel)));
+	for(auto& [name, surface]: get_surfaces())
+		surface = nullptr;
 }
 
 unique_ptr<Texture> load_image(SDL_Renderer* renderer, const Surface& surface, filter_t filter){
@@ -100,17 +122,7 @@ unique_ptr<Texture> load_image(SDL_Renderer* renderer, const Surface& surface, f
 
 		for(int x = 0; x < surface.get()->w; x++){
 			for(int y = 0; y < surface.get()->h; y++){
-				SDL_Color color;
-				SDL_GetRGBA(
-					pixel(surface.get(), x, y),
-					surface.get()->format,
-					&color.r, &color.g, &color.b, &color.a
-				);
-				color = filter(color);
-				pixel(new_surface.get(), x, y) = SDL_MapRGBA(
-					new_surface.get()->format,
-					color.r, color.g, color.b, color.a
-				);
+				new_surface.set_color(x, y, filter(surface.get_color(x, y)));
 			}
 		}
 	}			
@@ -127,6 +139,10 @@ bool load_images(SDL_Renderer* renderer, const string& name, map<filter_t, uniqu
 		if(texture == nullptr || texture->get() == nullptr){
 			return false;
 		}
+	}
+	
+	if(get_surfaces().count(name) > 0){
+		get_surfaces()[name] = make_unique<Surface>(move(surface));
 	}
 	
 	return true;

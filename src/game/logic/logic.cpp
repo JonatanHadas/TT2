@@ -180,8 +180,13 @@ int advance_shot(
 	const Maze& maze,
 	const vector<const TankState*>& tanks,
 	int& ignored_tank,
-	vector<Point>& collisions
+	vector<TimePoint>& collisions
 ){	
+	collisions.push_back({
+		.point = shot.position,
+		.time = 1
+	});
+
 	Point remaining_way = shot.velocity;
 
 	int tank_collision = -1;
@@ -242,8 +247,6 @@ int advance_shot(
 					tank_collision = tank_index;
 					fraction = current_fraction;
 				}
-			} else if (tank_index == ignored_tank){
-				ignored_tank = -1;
 			}
 		}
 		
@@ -260,11 +263,12 @@ int advance_shot(
 				shot.velocity.y = -shot.velocity.y;
 				remaining_way.y = -remaining_way.y;
 			}
-			collisions.push_back(shot.position);
+			collisions.push_back({
+				.point = shot.position,
+				.time = length(remaining_way) / length(shot.velocity),
+			});
 		}
 	}
-
-	collisions.push_back(shot.position);
 
 	return tank_collision;
 }

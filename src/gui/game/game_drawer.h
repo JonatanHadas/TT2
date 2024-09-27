@@ -9,7 +9,16 @@
 #include "tank_images.h"
 
 #include <memory>
+#include <map>
+#include <deque>
 #include <SDL.h>
+
+struct LaserData{
+	int start = 0;
+	deque<vector<TimePoint>> path;
+	Point position = { .x = 0, .y = 0 };
+	SDL_Color color;
+};
 
 class BoardDrawer{
 	const GameSettings& settings;
@@ -17,10 +26,11 @@ class BoardDrawer{
 	GameView* view;
 
 	int maze_w, maze_h;
-	unique_ptr<Texture> texture;
+	unique_ptr<Texture> texture, laser_layer;
 
 	vector<TankImage> tank_images;
 	unique_ptr<Texture> circle_texture;
+	map<int, LaserData> lasers;
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);
 	

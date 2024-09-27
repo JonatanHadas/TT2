@@ -120,4 +120,9 @@ struct Point{
 };
 
 
+struct TimePoint{
+	Point point;
+	Number time;
+};
+
 #endif

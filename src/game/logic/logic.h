@@ -10,7 +10,7 @@ int advance_shot(
 	const Maze& maze,
 	const vector<const TankState*>& tanks,
 	int& ignored_tank,
-	vector<Point>& collisions
+	vector<TimePoint>& collisions
 );
 
 bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade);

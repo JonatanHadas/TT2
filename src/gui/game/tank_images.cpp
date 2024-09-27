@@ -2,6 +2,8 @@
 
 #include "../utils/images.h"
 
+#include "../../utils/utils.h"
+
 struct TankSourceImage{
 	const unique_ptr<Texture>& color;
 	const unique_ptr<Texture>& light;
@@ -33,6 +35,7 @@ const TankSourceImage GATLING[] = {
 	register_tank_image(TANK "gatling1"),
 	register_tank_image(TANK "gatling2"),
 };
+const TankSourceImage LASER_GUN = register_tank_image(TANK "lasergun");
 
 class BaseTankTexture : public TankTexture{
 	Texture get_image(SDL_Renderer* renderer, const TankSourceImage& source) const{
@@ -77,13 +80,15 @@ protected:
 public:
 	TankImage get_tank_image(SDL_Renderer* renderer) const{
 		return {
+			.texture = *this,
 			.body = get_image(renderer, BODY),
 			.cannon = get_image(renderer, CANNON),
 			.gatling = {
 				get_image(renderer, GATLING[0]),
 				get_image(renderer, GATLING[1]),
 				get_image(renderer, GATLING[2]),
-			}
+			},
+			.laser_gun = get_image(renderer, LASER_GUN)
 		};
 	}
 };
@@ -97,16 +102,27 @@ protected:
 	}
 public:
 	SolidColorTexture(const SDL_Color& color) : color(color) {}
+
+	SDL_Color random_color() const {
+		return color;
+	}
 };
 
 class TexutedTankTexture : public BaseTankTexture {
-	const unique_ptr<Texture>& texture;
+	const TextureImage image;
 protected:
 	void fill_texture(SDL_Renderer* renderer) const{
-		SDL_RenderCopy(renderer, texture->get(), NULL, NULL);
+		SDL_RenderCopy(renderer, image.texture->get(), NULL, NULL);
 	}
 public:
-	TexutedTankTexture(const unique_ptr<Texture>& texture) : texture(texture) {}
+	TexutedTankTexture(const TextureImage& image) : image(image) {}
+	
+	SDL_Color random_color() const{
+		return image.surface->get_color(
+			rand_range(0, image.surface->get()->w),
+			rand_range(0, image.surface->get()->h)
+		);
+	}
 };
 
 #define TEXTURE "textures/"
@@ -126,7 +142,7 @@ const vector<unique_ptr<TankTexture>> TANK_TEXTURES = [](){
 	ret.push_back(make_unique<SolidColorTexture>(SDL_Color({ .r = 128, .g =   0, .b = 255, .a = 255 })));  // Purple
 	ret.push_back(make_unique<SolidColorTexture>(SDL_Color({ .r =   0, .g = 128, .b =   0, .a = 255 })));  // Dark green
 	ret.push_back(make_unique<SolidColorTexture>(SDL_Color({ .r =   0, .g =   0, .b =   0, .a = 255 })));  // Black
-	ret.push_back(make_unique<TexutedTankTexture>(register_image(TEXTURE "army")));
+	ret.push_back(make_unique<TexutedTankTexture>(register_texture(TEXTURE "army")));
 	return ret;
 }();
 

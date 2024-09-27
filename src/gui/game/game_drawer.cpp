@@ -21,14 +21,17 @@ const Number CANNON_LENGTH = Number(54) / 100;
 
 static inline double angle(const Point& point){
 	
-	return RAD2DEG(atan2((double)point.x, (double)-point.y));
+	return RAD2DEG(atan2((float)(double)point.x, (float)(double)-point.y));
 }
 
 #define UPGRADES "upgrades/"
 
 const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
 	{ Upgrade::Type::GATLING, register_image(UPGRADES "gatling") },
+	{ Upgrade::Type::LASER, register_image(UPGRADES "laser") },
 });
+
+#include <iostream>
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 	view(view),
@@ -37,6 +40,8 @@ BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 	texture(nullptr) {
 
 }
+
+const int LASER_DECAY_TIME = 10;
 
 constexpr int CIRCLE_RADIUS = 50;
 constexpr unsigned int CIRCLE_POINTS = 100;
@@ -51,6 +56,8 @@ const Texture& get_cannon_image(const TankUpgradeState* upgrade, const TankImage
 		if(index < 0) index += GATLING_IMAGE_CNT;
 		return image.gatling[index];
 	}
+	case Upgrade::Type::LASER:
+		return image.laser_gun;
 	default:
 		return image.cannon;
 	}
@@ -62,11 +69,19 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		maze_w != view->get_maze().get_w() ||
 		maze_h != view->get_maze().get_h()
 	) {
+		int texture_w = (view->get_maze().get_w() + 2*WALL_WIDTH) * DRAW_SCALE;
+		int texture_h = (view->get_maze().get_h() + 2*WALL_WIDTH) * DRAW_SCALE;
 		texture = make_unique<Texture>(renderer,
 			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-			(view->get_maze().get_w() + 2*WALL_WIDTH) * DRAW_SCALE,
-			(view->get_maze().get_h() + 2*WALL_WIDTH) * DRAW_SCALE
+			texture_w, texture_h
 		);
+		laser_layer = make_unique<Texture>(renderer,
+			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			texture_w, texture_h
+		);
+		SDL_SetTextureBlendMode(laser_layer->get(), SDL_BLENDMODE_BLEND);
+		maze_w = view->get_maze().get_w();
+		maze_h = view->get_maze().get_h();
 	}
 	
 	if(circle_texture == nullptr){
@@ -152,16 +167,129 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		
 		auto shots = view->get_shots();
 		for(const auto& shot: shots){
-			SDL_Rect shot_rect;
-			shot_rect.w = shot_rect.h = DRAW_SCALE * shot.state.radius * 2;
+			switch(shot.state.type){
+			case ShotDetails::Type::ROUND:
+				{
+					SDL_Rect shot_rect;
+					shot_rect.w = shot_rect.h = DRAW_SCALE * shot.state.radius * 2;
+					
+					shot_rect.x = DRAW_SCALE * (shot.state.position.x + WALL_WIDTH)- shot_rect.w / 2;
+					shot_rect.y = DRAW_SCALE * (shot.state.position.y + WALL_WIDTH)- shot_rect.h / 2;
+					
+					SDL_SetTextureColorMod(circle_texture->get(), 0, 0, 0);
+					SDL_SetTextureAlphaMod(circle_texture->get(), 255);
+					
+					SDL_RenderCopy(renderer, circle_texture->get(), NULL, &shot_rect);
+				}
+				break;
+			case ShotDetails::Type::LASER:
+				if(lasers.count(shot.id) == 0) lasers.insert({shot.id, {
+					.start = 0,
+					.path = deque<vector<TimePoint>>(),
+					.position = shot.state.position,
+					.color = tank_images[shot.state.owner].texture.random_color()
+				}});
+				lasers[shot.id].path.push_front(shot.path);
+				lasers[shot.id].position = shot.state.position;
+				lasers[shot.id].start = 0;
+				break;
+			}
+		}
+		
+		set<int> finished_lasers;
+		for(auto& [id, laser]: lasers){
+			laser_layer->do_with_texture(renderer, [&](){
+				SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+				SDL_RenderClear(renderer);
+				
+				SDL_Color color;
+				color.r = laser.color.r;
+				color.g = laser.color.g;
+				color.b = laser.color.b;
+				color.a = (int)(255 * (1 - (laser.start / LASER_DECAY_TIME)));
+
+				vector<SDL_Vertex> vertices;
+				vector<int> indices;
+				Point last = laser.position;
+
+				int i = 0;
+				for(
+					Number start = laser.start;
+					i < laser.path.size() && start < LASER_DECAY_TIME;
+					start += laser.path[i++][0].time
+				){
+					for(int j = laser.path[i].size() - 1; j >= 0; j--){
+						indices.push_back(vertices.size());
+						indices.push_back(vertices.size() + 1);
+						indices.push_back(vertices.size() + 2);
+						indices.push_back(vertices.size() + 1);
+						indices.push_back(vertices.size() + 2);
+						indices.push_back(vertices.size() + 3);
+
+						auto direction = laser.path[i][j].point - last;
+						normalize(direction);
+						direction *= LASER_RADIUS;
+						vertices.push_back({
+							.position = {
+								.x = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.x + direction.y)),
+								.y = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.y - direction.x))
+							},
+							.color = color,
+							.tex_coord = { .x = 0, .y = 0 }
+						});
+						vertices.push_back({
+							.position = {
+								.x = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.x - direction.y)),
+								.y = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.y + direction.x))
+							},
+							.color = color,
+							.tex_coord = { .x = 0, .y = 0 }
+						});
+						
+						if(start + laser.path[i][j].time > LASER_DECAY_TIME){
+							color.a = 0;
+						}
+						else{
+							color.a = (int)(255 * (1 - (start + laser.path[i][j].time) / LASER_DECAY_TIME));
+						}
+						last = laser.path[i][j].point;
+						
+						vertices.push_back({
+							.position = {
+								.x = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.x + direction.y)),
+								.y = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.y - direction.x))
+							},
+							.color = color,
+							.tex_coord = { .x = 0, .y = 0 }
+						});
+						vertices.push_back({
+							.position = {
+								.x = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.x - direction.y)),
+								.y = (float)(double)(DRAW_SCALE * (WALL_WIDTH + last.y + direction.x))
+							},
+							.color = color,
+							.tex_coord = { .x = 0, .y = 0 }
+						});
+						
+						if(start + laser.path[i][j].time > LASER_DECAY_TIME) break;
+					}
+				}
+				if(i == 0) finished_lasers.insert(id);
+				while(laser.path.size() > i) laser.path.pop_back();
+				
+				SDL_RenderGeometry(
+					renderer, NULL,
+					&vertices[0], vertices.size(),
+					&indices[0], indices.size()
+				);
+				
+				laser.start++;
+			});
 			
-			shot_rect.x = DRAW_SCALE * (shot.state.position.x + WALL_WIDTH)- shot_rect.w / 2;
-			shot_rect.y = DRAW_SCALE * (shot.state.position.y + WALL_WIDTH)- shot_rect.h / 2;
-			
-			SDL_SetTextureColorMod(circle_texture->get(), 0, 0, 0);
-			SDL_SetTextureAlphaMod(circle_texture->get(), 255);
-			
-			SDL_RenderCopy(renderer, circle_texture->get(), NULL, &shot_rect);
+			SDL_RenderCopy(renderer, laser_layer->get(), NULL, NULL);
+		}
+		for(int id: finished_lasers){
+			lasers.erase(id);
 		}
 		
 		auto tank_states = view->get_states();

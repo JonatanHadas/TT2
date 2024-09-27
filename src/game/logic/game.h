@@ -172,6 +172,7 @@ class Round{
 
 	int next_id;
 	map<int, unique_ptr<Shot>> shots;
+	set<int> removed_shots;
 
 	set<unique_ptr<Upgrade>> upgrades;
 	int upgrade_timer;

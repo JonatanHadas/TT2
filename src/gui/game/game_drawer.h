@@ -31,6 +31,15 @@ class BoardDrawer{
 	vector<TankImage> tank_images;
 	unique_ptr<Texture> circle_texture;
 	map<int, LaserData> lasers;
+	
+	void initialize(SDL_Renderer* renderer);
+	void resize_canvas(SDL_Renderer* renderer);
+	
+	void draw_maze(SDL_Renderer* renderer);
+	void draw_upgrades(SDL_Renderer* renderer);
+	void draw_shots(SDL_Renderer* renderer);
+	void draw_lasers(SDL_Renderer* renderer);
+	void draw_tanks(SDL_Renderer* renderer);
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);
 	

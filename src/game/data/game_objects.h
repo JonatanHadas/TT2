@@ -66,7 +66,8 @@ public:
 class Upgrade {
 public:
 	enum class Type : unsigned char{
-		GATLING = 0
+		GATLING = 0,
+		LASER = 1
 	} type;
 	int x, y;
 	
@@ -78,16 +79,25 @@ public:
 
 class ShotDetails{
 public:
+	enum class Type : unsigned char{
+		ROUND,
+		LASER
+	};
+
 	ShotDetails(
 		const Point& position,
 		const Point& velocity,
 		Number radius,
-		int timer
+		int timer,
+		Type type,
+		int owner
 	);
 	
 	Point position, velocity;
 	Number radius;
 	int timer;
+	Type type;
+	int owner;
 	
 	void serialize(ostream& output) const;
 	static ShotDetails deserialize(istream& input);

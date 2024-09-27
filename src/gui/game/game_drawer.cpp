@@ -159,16 +159,46 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		
 		auto shots = view->get_shots();
 		for(const auto& shot: shots){
-			SDL_Rect shot_rect;
-			shot_rect.w = shot_rect.h = DRAW_SCALE * shot.state.radius * 2;
-			
-			shot_rect.x = DRAW_SCALE * (shot.state.position.x + WALL_WIDTH)- shot_rect.w / 2;
-			shot_rect.y = DRAW_SCALE * (shot.state.position.y + WALL_WIDTH)- shot_rect.h / 2;
-			
-			SDL_SetTextureColorMod(circle_texture->get(), 0, 0, 0);
-			SDL_SetTextureAlphaMod(circle_texture->get(), 255);
-			
-			SDL_RenderCopy(renderer, circle_texture->get(), NULL, &shot_rect);
+			switch(shot.state.type){
+			case ShotDetails::Type::ROUND:
+				{
+					SDL_Rect shot_rect;
+					shot_rect.w = shot_rect.h = DRAW_SCALE * shot.state.radius * 2;
+					
+					shot_rect.x = DRAW_SCALE * (shot.state.position.x + WALL_WIDTH)- shot_rect.w / 2;
+					shot_rect.y = DRAW_SCALE * (shot.state.position.y + WALL_WIDTH)- shot_rect.h / 2;
+					
+					SDL_SetTextureColorMod(circle_texture->get(), 0, 0, 0);
+					SDL_SetTextureAlphaMod(circle_texture->get(), 255);
+					
+					SDL_RenderCopy(renderer, circle_texture->get(), NULL, &shot_rect);
+				}
+				break;
+			case ShotDetails::Type::LASER:
+				{
+					SDL_SetRenderDrawColor(
+						renderer,
+						tank_colors[settings.colors[shot.state.owner]].r,
+						tank_colors[settings.colors[shot.state.owner]].g,
+						tank_colors[settings.colors[shot.state.owner]].b,
+						255
+					);
+					vector<SDL_Point> points;
+					for(const auto& point: shot.path){
+						points.push_back({
+							.x = DRAW_SCALE * (point.point.x + WALL_WIDTH),
+							.y = DRAW_SCALE * (point.point.y + WALL_WIDTH)
+						});
+					}
+					points.push_back({
+						.x = DRAW_SCALE * (shot.state.position.x + WALL_WIDTH),
+						.y = DRAW_SCALE * (shot.state.position.y + WALL_WIDTH)
+					});
+					
+					SDL_RenderDrawLines(renderer, &points[0], points.size());
+				}
+				break;
+			}
 		}
 		
 		auto tank_states = view->get_states();

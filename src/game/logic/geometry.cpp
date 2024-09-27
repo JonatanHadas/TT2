@@ -29,6 +29,11 @@ const Point UPGRADE_ROTATION = {
 	.y = Number(1) / 2,
 };
 
+const Number LASER_RADIUS = Number(1)/100;
+const Number LASER_SPEED = Number(7)/10;
+const int LASER_TTL = 20;
+
+
 Point rotate(const Point& direction, const Point& rotation) {
 	return {
 		.x = direction.x * rotation.x - direction.y * rotation.y,

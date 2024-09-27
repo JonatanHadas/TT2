@@ -73,6 +73,7 @@ vector<ShotPath> Game::get_shots() const{
 	vector<ShotPath> shots;
 	for(const auto& entry: round->get_shots()){
 		shots.push_back(ShotPath({
+			.id=entry.first,
 			.state=entry.second->get_state(),
 			.path=entry.second->get_path()
 		}))	;
@@ -194,21 +195,25 @@ const Number SHOT_SPEED = Number(1)/25;
 const int SHOT_TTL = 1200;
 const int MAX_SHOTS = 5;
 
-ShotManager::ShotManager(int owner) : owner(owner), pressed(false) {}
+ShotManager::ShotManager(int owner) : owner(owner) {}
 
-bool ShotManager::step(const TankState& owner_state, Round& round){
+bool ShotManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+){
 	vector<int> removed_shots;
 	for(int shot: shots) if(round.get_shot(shot) == nullptr) removed_shots.push_back(shot);
 	for(int shot: removed_shots) shots.erase(shot);
 
-	if(owner_state.key_state.shoot && ! pressed && shots.size() < MAX_SHOTS){
+	if(owner_state.key_state.shoot && !previous_keys.shoot && shots.size() < MAX_SHOTS){
 		shots.insert(round.add_shot(make_unique<Shot>(ShotDetails(
 			owner_state.position + owner_state.direction * CANNON_LENGTH,
 			owner_state.direction * SHOT_SPEED,
-			SHOT_RADIUS, SHOT_TTL
-		), owner)));
+			SHOT_RADIUS, SHOT_TTL, ShotDetails::Type::ROUND,
+			owner
+		))));
 	}
-	pressed = owner_state.key_state.shoot;
 	return false;
 }
 
@@ -224,6 +229,8 @@ bool AppliedUpgrade::allow_moving() const{
 	return true;
 }
 
+void AppliedUpgrade::reset() {}
+
 
 const Number GATLING_RADIUS = Number(3)/200;
 const Number GATLING_SPEED = Number(1)/20;
@@ -238,35 +245,62 @@ GatlingShotManager::GatlingShotManager(int owner) :
 		.state = 0,
 		.timer = -GATLING_START_TIME
 	}),
-	owner(owner),
-	released(false) {
+	owner(owner) {
 
 }
 
-bool GatlingShotManager::step(const TankState& owner_state, Round& round){
-	if(!released && !owner_state.key_state.shoot) released = true;
-	if(released){
-		if(state.state){
-			if(!owner_state.key_state.shoot) return true;
-			state.timer++;
-			if(state.timer >= 0 && state.timer % GATLING_INTERVAL == 0){
-				Point variance = { .x = 1, .y = rand_range(-1000, 1000) * GATLING_VARIANCE / 1000 };
-				normalize(variance);
-				
-				round.add_shot(make_unique<Shot>(ShotDetails(
-					owner_state.position + owner_state.direction * CANNON_LENGTH,
-					rotate(owner_state.direction, variance) * GATLING_SPEED,
-					GATLING_RADIUS, GATLING_TTL
-				), owner));
-			}
+bool GatlingShotManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+){
+	if(owner_state.key_state.shoot && !previous_keys.shoot) state.state = 1;
+	if(state.state){
+		if(!owner_state.key_state.shoot) return true;
+		state.timer++;
+		if(state.timer >= 0 && state.timer % GATLING_INTERVAL == 0){
+			Point variance = { .x = 1, .y = rand_range(-1000, 1000) * GATLING_VARIANCE / 1000 };
+			normalize(variance);
 			
-		} else if(owner_state.key_state.shoot){
-			state.state = 1;
+			round.add_shot(make_unique<Shot>(ShotDetails(
+				owner_state.position + owner_state.direction * CANNON_LENGTH,
+				rotate(owner_state.direction, variance) * GATLING_SPEED,
+				GATLING_RADIUS, GATLING_TTL, ShotDetails::Type::ROUND,
+				owner
+			)));
 		}
+		
 	}
 	return false;
 }
-void GatlingShotManager::reset(){}
+
+
+LaserManager::LaserManager(int owner) : 
+	AppliedUpgrade({
+		.type = Upgrade::Type::LASER,
+		.state = 0,
+		.timer = 0,
+	}),
+	owner(owner) {
+	
+}
+
+bool LaserManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+) {
+	if(owner_state.key_state.shoot && !previous_keys.shoot) {
+		round.add_shot(make_unique<Shot>(ShotDetails(
+			owner_state.position + owner_state.direction * CANNON_LENGTH,
+			owner_state.direction * LASER_SPEED,
+			LASER_RADIUS, LASER_TTL, ShotDetails::Type::LASER,
+			owner
+		)));
+		return true;
+	}
+	return false;
+}
 
 
 Tank::Tank(Game& game, int index) :
@@ -294,6 +328,9 @@ void Tank::set_upgrade(Upgrade::Type type){
 	switch(type){
 	case Upgrade::Type::GATLING:
 		upgrade = make_unique<GatlingShotManager>(index);
+		break;
+	case Upgrade::Type::LASER:
+		upgrade = make_unique<LaserManager>(index);
 		break;
 	}
 }
@@ -324,6 +361,7 @@ bool Tank::can_advance() const{
 	return !state.active || !pending_keys.empty();
 }
 void Tank::advance(Round& round){
+	auto previous_keys = state.key_state;
 	if(state.active){
 		state.key_state = pending_keys.front();
 		pending_keys.pop_front();
@@ -338,11 +376,11 @@ void Tank::advance(Round& round){
 		if(upgrade->allow_moving()){
 			advance_tank(state, game.get_maze());
 		}
-		if(upgrade->step(state, round)) upgrade = nullptr;
+		if(upgrade->step(state, previous_keys, round)) upgrade = nullptr;
 	}
 	else{
 		advance_tank(state, game.get_maze());
-		shot_manager.step(state, round);
+		shot_manager.step(state, previous_keys, round);
 	}
 }
 
@@ -365,14 +403,13 @@ bool Projectile::advance(Game& game){
 	return finished;
 }
 
-Shot::Shot(ShotDetails&& details, int shooter) : state(move(details)), ignored_tank(shooter) {}
+Shot::Shot(ShotDetails&& details) : state(move(details)), ignored_tank(state.owner) {}
 
 bool Shot::step(
 	const Maze& maze, const vector<const TankState*>& tanks,
 	vector<int>& killed_tanks
 ){
 	path.clear();
-	path.push_back(state.position);
 
 	int tank_hit = advance_shot(state, maze, tanks, ignored_tank, path);
 	if(tank_hit >= 0){
@@ -387,6 +424,6 @@ bool Shot::step(
 const ShotDetails& Shot::get_state() const{
 	return state;
 }
-const vector<Point>& Shot::get_path() const{
+const vector<TimePoint>& Shot::get_path() const{
 	return path;
 }

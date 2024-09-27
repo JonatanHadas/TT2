@@ -22,6 +22,11 @@ extern const Number TANK_REVERSE_SPEED;
 extern const Number UPGRADE_SIZE;
 extern const Point UPGRADE_ROTATION;
 
+
+extern const Number LASER_RADIUS;
+extern const Number LASER_SPEED;
+extern const int LASER_TTL;
+
 Point rotate(const Point& direction, const Point& rotation);
 
 double length(const Point& point);

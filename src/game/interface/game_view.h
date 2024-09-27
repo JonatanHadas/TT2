@@ -10,8 +10,9 @@
 using namespace std;
 
 struct ShotPath{
+	int id;
 	const ShotDetails& state;
-	const vector<Point>& path;
+	const vector<TimePoint>& path;
 };
 
 struct TankUpgradeState{

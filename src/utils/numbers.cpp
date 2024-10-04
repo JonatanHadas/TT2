@@ -1,5 +1,6 @@
 #include "numbers.h"
 
+#include "utils.h"
 #include "serialization.h"
 
 #include <math.h>
@@ -184,6 +185,10 @@ void Number::serialize(ostream& output) const{
 }
 Number Number::deserialize(istream& input){
 	return Number(deserialize_value<int>(input), 0);
+}
+
+Number Number::random(Number min, Number max){
+	return Number(rand_range(min.scaled_value, max.scaled_value + 1), 0);
 }
 
 

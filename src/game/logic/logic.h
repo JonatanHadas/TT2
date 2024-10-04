@@ -13,6 +13,10 @@ int advance_shot(
 	vector<TimePoint>& collisions
 );
 
+Number get_shrapnel_wall_collision(const ShrapnelDetails& shrapnel, const Maze& maze);
+Number get_shrapnel_tank_collision(const ShrapnelDetails& shrapnel, const TankState& tank);
+Number get_shrapnel_way(int time);
+
 bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade);
 
 #endif

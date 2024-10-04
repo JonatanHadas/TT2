@@ -1,6 +1,4 @@
 #include <iostream>
-#include <stdlib.h>
-#include <time.h>
 #include <SDL.h>
 #include <SDL_image.h>
 
@@ -23,8 +21,6 @@ void close_window(){
 }
 
 int main(int argc, char** argv){
-	srand(time(NULL));
-
 	if(SDL_Init(SDL_INIT_EVERYTHING) < 0){
 		cerr << "Error initializing SDL:" << endl << SDL_GetError() << endl;
 		return 1;
@@ -70,7 +66,7 @@ int main(int argc, char** argv){
 	);
 	
 	set<Upgrade::Type> allowed_upgrades({
-		Upgrade::Type::LASER
+		Upgrade::Type::BOMB
 	});
 
 	Game game(MazeGeneration::EXPAND_TREE, allowed_upgrades, settings.colors.size());

@@ -29,7 +29,7 @@ class BoardDrawer{
 	unique_ptr<Texture> texture, laser_layer;
 
 	vector<TankImage> tank_images;
-	unique_ptr<Texture> circle_texture;
+	unique_ptr<Texture> circle_texture, shrapnel_texture;
 	map<int, LaserData> lasers;
 	
 	void initialize(SDL_Renderer* renderer);
@@ -39,6 +39,7 @@ class BoardDrawer{
 	void draw_upgrades(SDL_Renderer* renderer);
 	void draw_shots(SDL_Renderer* renderer);
 	void draw_lasers(SDL_Renderer* renderer);
+	void draw_shrapnel(SDL_Renderer* renderer);
 	void draw_tanks(SDL_Renderer* renderer);
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);

@@ -26,6 +26,12 @@ struct TankCompleteState{
 	const TankUpgradeState* upgrade;
 };
 
+struct ShrapnelState{
+	const ShrapnelDetails details;
+	const Number collision;
+	int timer;
+};
+
 class GameView{
 public:
 	virtual int get_round() const = 0;
@@ -33,6 +39,7 @@ public:
 
 	virtual vector<TankCompleteState> get_states() const = 0;
 	virtual vector<ShotPath> get_shots() const = 0;
+	virtual vector<const ShrapnelState*> get_shrapnels() const = 0;
 	virtual const set<unique_ptr<Upgrade>>& get_upgrades() const = 0;
 };
 

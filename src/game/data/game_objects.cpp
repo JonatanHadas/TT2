@@ -144,3 +144,19 @@ ShotDetails ShotDetails::deserialize(istream& input){
 		owner
 	);
 }
+
+ShrapnelDetails::ShrapnelDetails(
+	const Point& start,
+	const Point& distance
+) : start(start), distance(distance) {}
+
+void ShrapnelDetails::serialize(ostream& output) const{
+	serialize_value(output, start);
+	serialize_value(output, distance);
+}
+ShrapnelDetails ShrapnelDetails::deserialize(istream& input){
+	auto start = deserialize_value<Point>(input);
+	auto distance = deserialize_value<Point>(input);
+	
+	return ShrapnelDetails(start, distance);
+}

@@ -13,6 +13,7 @@
 #include "../interface/game_view.h"
 #include "../interface/game_advancer.h"
 #include "../interface/player_interface.h"
+#include "../interface/game_observer_hub.h"
 
 class Game;
 class Tank;
@@ -20,7 +21,7 @@ class Shot;
 class Round;
 class WeaponManager;
 
-class Game : public GameView, public GameAdvancer {
+class Game : public GameView, public GameAdvancer, public GameObserverHub {
 	const MazeGeneration maze_generation;
 	const vector<Upgrade::Type> allowed_upgrades;
 	unique_ptr<Round> round;
@@ -45,6 +46,7 @@ public:
 	const Maze& get_maze() const;
 	vector<TankCompleteState> get_states() const;
 	vector<ShotPath> get_shots() const;
+	vector<const ShrapnelState*> get_shrapnels() const;
 	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 
 	void advance();
@@ -64,11 +66,17 @@ public:
 	virtual void reset() = 0;
 };
 
-class ShotManager : public WeaponManager{
+class ShotManager : public WeaponManager, public GameObserver{
+	Game& game;
 	const int owner;
 	set<int> shots;
 public:
-	ShotManager(int owner);
+	ShotManager(int owner, Game& game);
+	ShotManager(const ShotManager&) = delete;
+	ShotManager(ShotManager&&) = delete;
+	ShotManager& operator=(const ShotManager&) = delete;
+	ShotManager& operator=(ShotManager&&) = delete;
+	~ShotManager();
 
 	bool step(
 		const TankState& owner_state,
@@ -76,6 +84,8 @@ public:
 		Round& round
 	);
 	void reset();
+
+	void on_shot_removed(int shot_id);
 };
 
 
@@ -114,12 +124,34 @@ public:
 	);
 };
 
+class BombManager : public AppliedUpgrade, public GameObserver{
+	Game& game;
+	Round* round;
+	const int owner;
+	int shot;
+public:
+	BombManager(int owner, Game& game);
+	BombManager(const BombManager&) = delete;
+	BombManager(BombManager&&) = delete;
+	BombManager& operator=(const BombManager&) = delete;
+	BombManager& operator=(BombManager&&) = delete;
+	~BombManager();
+	
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
+
+	void on_shot_removed(int shot_id);
+};
+
 class Tank : public PlayerInterface{
 	Game& game;
 	const int index;
 
 	TankState state;
-	ShotManager shot_manager;
+	unique_ptr<ShotManager> shot_manager;
 	unique_ptr<AppliedUpgrade> upgrade;
 		
 	deque<KeyState> pending_keys;
@@ -166,6 +198,19 @@ public:
 	const vector<TimePoint>& get_path() const;
 };
 
+class Shrapnel : public Projectile{
+	ShrapnelState state;
+protected:
+	bool step(
+		const Maze& maze, const vector<const TankState*>& tanks,
+		vector<int>& killed_tanks
+	);
+public:
+	Shrapnel(const ShrapnelDetails& details, const Maze& maze);
+	
+	const ShrapnelState& get_state() const;
+};
+
 class Round{
 	Game& game;
 	const vector<Upgrade::Type>& allowed_upgrades;
@@ -173,6 +218,7 @@ class Round{
 	int next_id;
 	map<int, unique_ptr<Shot>> shots;
 	set<int> removed_shots;
+	set<unique_ptr<Shrapnel>> shrapnels;
 
 	set<unique_ptr<Upgrade>> upgrades;
 	int upgrade_timer;
@@ -190,6 +236,9 @@ public:
 	void remove_shot(int shot_id);
 	Shot* get_shot(int shot_id) const;
 	const map<int, unique_ptr<Shot>>& get_shots() const;
+
+	void explode(const Point& source);
+	const set<unique_ptr<Shrapnel>>& get_shrapnels() const;
 	
 	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 };

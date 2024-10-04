@@ -29,6 +29,7 @@ static inline double angle(const Point& point){
 const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
 	{ Upgrade::Type::GATLING, register_image(UPGRADES "gatling") },
 	{ Upgrade::Type::LASER, register_image(UPGRADES "laser") },
+	{ Upgrade::Type::BOMB, register_image(UPGRADES "bomb") },
 });
 
 #include <iostream>
@@ -37,6 +38,7 @@ BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 	view(view),
 	settings(settings),
 	circle_texture(nullptr),
+	shrapnel_texture(nullptr),
 	texture(nullptr) {
 
 }
@@ -45,6 +47,13 @@ const int LASER_DECAY_TIME = 10;
 
 constexpr int CIRCLE_RADIUS = 50;
 constexpr unsigned int CIRCLE_POINTS = 100;
+
+constexpr int SHRAPNEL_WIDTH = 10;
+constexpr int SHRAPNEL_HEIGHT = SHRAPNEL_WIDTH * sqrt(3) / 2;
+const SDL_Point SHRAPNEL_CENTER = {
+	.x = SHRAPNEL_WIDTH / 2,
+	.y = SHRAPNEL_HEIGHT / 3
+};
 
 const Texture& get_cannon_image(const TankUpgradeState* upgrade, const TankImage& image){
 	if(upgrade == nullptr) return image.cannon;
@@ -58,6 +67,8 @@ const Texture& get_cannon_image(const TankUpgradeState* upgrade, const TankImage
 	}
 	case Upgrade::Type::LASER:
 		return image.laser_gun;
+	case Upgrade::Type::BOMB:
+		return image.thick_cannon;
 	default:
 		return image.cannon;
 	}
@@ -98,6 +109,41 @@ void BoardDrawer::initialize(SDL_Renderer* renderer){
 				&indices[0], indices.size()
 			);
 		});
+		
+		SDL_SetTextureBlendMode(circle_texture->get(), SDL_BLENDMODE_BLEND);
+	}
+	if(shrapnel_texture == nullptr){
+		shrapnel_texture = make_unique<Texture>(renderer,
+			SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+			SHRAPNEL_WIDTH, SHRAPNEL_HEIGHT
+		);
+		
+		shrapnel_texture->do_with_texture(renderer, [&](){
+			SDL_SetRenderDrawColor(renderer, 0, 0 ,0 ,0);
+			SDL_RenderClear(renderer);
+			
+			SDL_Vertex vertices[] = {
+				{
+					.position = { .x = 0, .y = 0 },
+					.color = { .r = 0, .g = 0, .b = 0, .a = 255 },
+					.tex_coord = { .x = 0, .y = 0 }
+				},
+				{
+					.position = { .x = SHRAPNEL_WIDTH, .y = 0 },
+					.color = { .r = 0, .g = 0, .b = 0, .a = 255 },
+					.tex_coord = { .x = 0, .y = 0 }
+				},
+				{
+					.position = { .x = SHRAPNEL_WIDTH / 2, .y = SHRAPNEL_HEIGHT },
+					.color = { .r = 0, .g = 0, .b = 0, .a = 255 },
+					.tex_coord = { .x = 0, .y = 0 }
+				}
+			};
+			
+			SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 3);
+		});
+		
+		SDL_SetTextureBlendMode(shrapnel_texture->get(), SDL_BLENDMODE_BLEND);
 	}
 	if(tank_images.empty()){
 		for(int i = 0; i < view->get_states().size(); i++){
@@ -304,6 +350,40 @@ void BoardDrawer::draw_lasers(SDL_Renderer* renderer){
 	}
 }
 
+void BoardDrawer::draw_shrapnel(SDL_Renderer* renderer){
+	for(auto shrapnel: view->get_shrapnels()){
+		auto fraction = get_shrapnel_way(shrapnel->timer);
+
+		int alpha = 255 * (1 - fraction);
+		if(alpha > 255) alpha = 255;
+		if(alpha < 0) alpha = 0;
+		SDL_SetTextureAlphaMod(shrapnel_texture->get(), alpha);
+
+		if(fraction > shrapnel->collision) fraction = shrapnel->collision;		
+		Point position = shrapnel->details.start + shrapnel->details.distance * fraction;
+		
+		SDL_Rect rect;
+		rect.w = SHRAPNEL_WIDTH;
+		rect.h = SHRAPNEL_HEIGHT;
+		rect.x = DRAW_SCALE * (WALL_WIDTH + position.x) - SHRAPNEL_CENTER.x;
+		rect.y = DRAW_SCALE * (WALL_WIDTH + position.y) - SHRAPNEL_CENTER.y;
+		
+		int start_angle = (
+			shrapnel->details.start.x * 6716513 +
+			shrapnel->details.start.y * 3465489 +
+			shrapnel->details.distance.x * 9835691 +
+			shrapnel->details.distance.y * 3519876
+		);  // Consistent pseudo random
+		
+		SDL_RenderCopyEx(
+			renderer, shrapnel_texture->get(),
+			NULL, &rect,
+			(start_angle % 360) + (fraction * 360),
+			&SHRAPNEL_CENTER, SDL_FLIP_NONE
+		);
+	}
+}
+
 void BoardDrawer::draw_tanks(SDL_Renderer* renderer){
 	auto tank_states = view->get_states();
 	for(int i = 0; i < tank_states.size(); i++){
@@ -350,6 +430,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		draw_maze(renderer);
 		draw_upgrades(renderer);
 		draw_shots(renderer);
+		draw_shrapnel(renderer);
 		draw_tanks(renderer);
 	});
 }

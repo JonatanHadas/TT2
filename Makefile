@@ -32,11 +32,15 @@ HEADS_utils/serialization := utils/serialization
 HEADS_game/data/game_objects := game/data/game_objects utils/serialization utils/numbers
 HEADS_game/data/game_settings := game/data/game_settings utils/serialization
 
+# Inreface
+
+HEADS_game/interface/game_observer_hub := game/interface/game_observer_hub game/interface/game_observer
+
 # Logic
 
 HEADS_game/logic/geometry := game/logic/geometry utils/numbers
 HEADS_game/logic/logic := game/logic/logic game/logic/geometry game/data/game_objects utils/serialization
-HEADS_game/logic/game := game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/serialization utils/numbers game/logic/maze game/logic/logic
+HEADS_game/logic/game := game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/interface/game_observer_hub game/interface/game_observer game/data/game_objects utils/serialization utils/numbers game/logic/maze game/logic/logic
 HEADS_game/logic/maze := game/logic/maze game/data/game_objects utils/numbers utils/utils
 
 ## GUI
@@ -62,9 +66,9 @@ HEADS_gui/game/tank_images := gui/game/tank_images gui/utils/images gui/utils/ut
 
 ## Executables
 
-HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller gui/game/tank_images
+HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/interface/game_observer_hub game/interface/game_observer game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller gui/game/tank_images
 
-CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset gui/utils/images gui/game/tank_images
+CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset game/interface/game_observer_hub gui/utils/images gui/game/tank_images
 SERVER_OBJECTS := 
 COMMON_OBJECTS := game/data/game_objects utils/utils game/logic/game game/logic/geometry game/logic/maze utils/numbers game/data/game_settings game/logic/logic utils/serialization
 

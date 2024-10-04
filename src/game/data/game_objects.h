@@ -67,7 +67,8 @@ class Upgrade {
 public:
 	enum class Type : unsigned char{
 		GATLING = 0,
-		LASER = 1
+		LASER = 1,
+		BOMB = 2
 	} type;
 	int x, y;
 	
@@ -101,6 +102,20 @@ public:
 	
 	void serialize(ostream& output) const;
 	static ShotDetails deserialize(istream& input);
+};
+
+class ShrapnelDetails{
+public:
+	ShrapnelDetails(
+		const Point& start,
+		const Point& distance
+	);
+	
+	Point start;
+	Point distance;
+	
+	void serialize(ostream& output) const;
+	static ShrapnelDetails deserialize(istream& input);
 };
 
 #endif

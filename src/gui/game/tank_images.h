@@ -18,6 +18,7 @@ struct TankImage{
 	Texture cannon;
 	Texture gatling[GATLING_IMAGE_CNT];
 	Texture laser_gun;
+	Texture thick_cannon;
 };
 
 class TankTexture{

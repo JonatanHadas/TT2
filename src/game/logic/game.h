@@ -58,6 +58,13 @@ public:
 
 class WeaponManager{
 public:
+	WeaponManager();
+	WeaponManager(const WeaponManager&) = delete;
+	WeaponManager(WeaponManager&&) = delete;
+	WeaponManager& operator=(const WeaponManager&) = delete;
+	WeaponManager& operator=(WeaponManager&&) = delete;
+	virtual ~WeaponManager();
+
 	virtual bool step(
 		const TankState& owner_state,
 		const KeyState& previous_keys,
@@ -72,10 +79,6 @@ class ShotManager : public WeaponManager, public GameObserver{
 	set<int> shots;
 public:
 	ShotManager(int owner, Game& game);
-	ShotManager(const ShotManager&) = delete;
-	ShotManager(ShotManager&&) = delete;
-	ShotManager& operator=(const ShotManager&) = delete;
-	ShotManager& operator=(ShotManager&&) = delete;
 	~ShotManager();
 
 	bool step(
@@ -131,10 +134,6 @@ class BombManager : public AppliedUpgrade, public GameObserver{
 	int shot;
 public:
 	BombManager(int owner, Game& game);
-	BombManager(const BombManager&) = delete;
-	BombManager(BombManager&&) = delete;
-	BombManager& operator=(const BombManager&) = delete;
-	BombManager& operator=(BombManager&&) = delete;
 	~BombManager();
 	
 	bool step(

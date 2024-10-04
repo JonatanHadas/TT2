@@ -221,6 +221,9 @@ void Round::step(){
 	}
 }
 
+WeaponManager::WeaponManager() {}
+WeaponManager::~WeaponManager() {}
+
 const Number CANNON_LENGTH = Number(17)/100;
 
 const Number SHOT_RADIUS = Number(3)/100;
@@ -352,6 +355,7 @@ BombManager::BombManager(int owner, Game& game) :
 	
 	game.add_observer(this);
 }
+
 BombManager::~BombManager(){
 	game.remove_observer(this);
 }

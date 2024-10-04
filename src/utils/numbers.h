@@ -89,6 +89,8 @@ public:
 	
 	void serialize(ostream& output) const;
 	static Number deserialize(istream& input);
+	
+	static Number random(Number min, Number max);
 };
 
 struct Point{

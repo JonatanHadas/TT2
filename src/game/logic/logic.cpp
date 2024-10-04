@@ -3,6 +3,7 @@
 #include "geometry.h"
 
 #include <vector>
+#include <math.h>
 
 using namespace std;
 
@@ -271,6 +272,60 @@ int advance_shot(
 	}
 
 	return tank_collision;
+}
+
+Number get_shrapnel_wall_collision(const ShrapnelDetails& shrapnel, const Maze& maze){
+	int sections = 1 + 2 * length(shrapnel.distance);
+	Point position = shrapnel.start;
+	Point step = shrapnel.distance / sections;
+	for(int i = 0; i < sections; i++, position += step){
+		bool collision = false;
+		Number fraction = 0;
+		for(const auto& polygon: get_maze_polygons(position.x, position.y, maze)){
+			Number current_fraction = 0;
+			Point current_normal = { .x = 0, .y = 0 };
+			
+			if(polygon_moving_circle_collision(
+				polygon,
+				position, step,
+				0,
+				current_normal, current_fraction
+			)){
+				if(!collision || current_fraction < fraction){
+					fraction = current_fraction;
+					collision = true;
+				}
+			}
+		}
+		
+		if(collision) return (fraction + i) / sections;
+	}
+	return 2;
+}
+Number get_shrapnel_tank_collision(const ShrapnelDetails& shrapnel, const TankState& tank){
+	if(!tank.alive) return 2;
+
+	auto polygon = get_rotated_rectangle(
+		tank.position,
+		tank.direction,
+		TANK_WIDTH, TANK_LENGTH
+	);
+	
+	Number fraction = 0;
+	Point normal = { .x = 0, .y = 0 };
+	if(polygon_moving_circle_collision(
+		polygon,
+		shrapnel.start, shrapnel.distance,
+		0,
+		normal, fraction
+	)) return fraction;
+	
+	return 2;
+}
+
+Number get_shrapnel_way(int time){
+	if(time > SHRAPNEL_TTL) return 1;
+	return 1.0 - pow(1.0 - (time / (double)SHRAPNEL_TTL), 2.6);
 }
 
 bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade){

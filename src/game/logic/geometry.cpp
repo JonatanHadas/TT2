@@ -33,6 +33,7 @@ const Number LASER_RADIUS = Number(1)/100;
 const Number LASER_SPEED = Number(7)/10;
 const int LASER_TTL = 20;
 
+const int SHRAPNEL_TTL = 90;
 
 Point rotate(const Point& direction, const Point& rotation) {
 	return {
@@ -49,7 +50,7 @@ void normalize(Point& point){
 	point /= length(point);
 }
 
-Point random_direction(){
+Point random_discrete_direction(){
 	int direction = rand_range(0, TURN_NUM);
 
 	Point result{
@@ -63,6 +64,17 @@ Point random_direction(){
 		
 		cur = rotate(cur, cur);
 	}
+	
+	normalize(result);
+	return result;
+}
+
+Point random_direction(){
+	Point result = { .x = 0, .y = 0 };
+	do{
+		result.x = Number::random(-1, 1);
+		result.y = Number::random(-1, 1);
+	} while(length(result) > 1);
 	
 	normalize(result);
 	return result;

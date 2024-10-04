@@ -81,6 +81,13 @@ vector<ShotPath> Game::get_shots() const{
 
 	return shots;
 }
+vector<const ShrapnelState*> Game::get_shrapnels() const{
+	vector<const ShrapnelState*> shrapnels;
+	for(const auto& shrapnel: round->get_shrapnels()){
+		shrapnels.push_back(&shrapnel->get_state());
+	}
+	return shrapnels;
+}
 const set<unique_ptr<Upgrade>>& Game::get_upgrades() const{
 	return round->get_upgrades();
 }
@@ -97,7 +104,6 @@ void Game::kill_tank(int index){
 void Game::upgrade_tank(int index, Upgrade::Type type){
 	tanks[index].set_upgrade(type);
 }
-
 
 const int MAX_UPGRADE_TIME = 120;
 const int MIN_UPGRADE_TIME = 60;
@@ -121,6 +127,7 @@ int Round::add_shot(unique_ptr<Shot>&& shot){
 	return shot_id;
 }
 void Round::remove_shot(int shot_id){
+	game.on_shot_removed(shot_id);
 	shots.erase(shot_id);
 }
 Shot* Round::get_shot(int shot_id) const{
@@ -130,6 +137,25 @@ Shot* Round::get_shot(int shot_id) const{
 }
 const map<int, unique_ptr<Shot>>& Round::get_shots() const{
 	return shots;
+}
+
+const Number EXPLOSION_SIZE = 5;
+const Number MIN_EXPLOSION_RANGE = 4;
+const int EXPLOSION_SHRAPNEL_COUNT = 100;
+
+void Round::explode(const Point& source){
+	vector<ShrapnelDetails> new_shrapnels;
+	for(int i = 0; i < EXPLOSION_SHRAPNEL_COUNT; i++){
+		new_shrapnels.push_back(ShrapnelDetails(
+			source, random_direction() * Number::random(MIN_EXPLOSION_RANGE, EXPLOSION_SIZE)
+		));
+	}
+	for(const auto& shrapnel: new_shrapnels) shrapnels.insert(make_unique<Shrapnel>(
+		shrapnel, maze
+	));
+}
+const set<unique_ptr<Shrapnel>>& Round::get_shrapnels() const{
+	return shrapnels;
 }
 
 const set<unique_ptr<Upgrade>>& Round::get_upgrades() const{
@@ -168,6 +194,14 @@ void Round::step(){
 		}
 	}
 	
+	vector<const unique_ptr<Shrapnel>*> removed_shrapnel;
+	for(const auto& shrapnel: shrapnels){
+		if(shrapnel->advance(game)) removed_shrapnel.push_back(&shrapnel);
+	}
+	for(auto shrapnel: removed_shrapnel){
+		shrapnels.erase(*shrapnel);
+	}
+	
 	upgrade_timer--;
 	if(upgrade_timer == 0){
 		create_upgrade();
@@ -194,17 +228,22 @@ const Number SHOT_SPEED = Number(1)/25;
 const int SHOT_TTL = 1200;
 const int MAX_SHOTS = 5;
 
-ShotManager::ShotManager(int owner) : owner(owner) {}
+ShotManager::ShotManager(int owner, Game& game) : owner(owner), game(game) {
+	game.add_observer(this);
+}
+ShotManager::~ShotManager() {
+	game.remove_observer(this);
+}
+
+void ShotManager::on_shot_removed(int shot_id){
+	if(shots.count(shot_id)) shots.erase(shot_id);
+}
 
 bool ShotManager::step(
 	const TankState& owner_state,
 	const KeyState& previous_keys,
 	Round& round
 ){
-	vector<int> removed_shots;
-	for(int shot: shots) if(round.get_shot(shot) == nullptr) removed_shots.push_back(shot);
-	for(int shot: removed_shots) shots.erase(shot);
-
 	if(owner_state.key_state.shoot && !previous_keys.shoot && shots.size() < MAX_SHOTS){
 		shots.insert(round.add_shot(make_unique<Shot>(ShotDetails(
 			owner_state.position + owner_state.direction * CANNON_LENGTH,
@@ -301,11 +340,61 @@ bool LaserManager::step(
 	return false;
 }
 
+BombManager::BombManager(int owner, Game& game) :
+	AppliedUpgrade({
+		.type = Upgrade::Type::BOMB,
+		.state = 0,
+		.timer = 0,
+	}),
+	game(game),
+	round(nullptr),
+	owner(owner) {
+	
+	game.add_observer(this);
+}
+BombManager::~BombManager(){
+	game.remove_observer(this);
+}
+
+void BombManager::on_shot_removed(int shot_id){
+	if(round != nullptr && state.state && shot_id == shot) {
+		round->explode(round->get_shot(shot)->get_state().position);
+	}
+}
+
+const Number BOMB_SPEED = Number(4) / 100;
+const Number BOMB_RADIUS = Number(5) / 100;
+
+bool BombManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+){
+	this->round = &round;
+	if(state.state && round.get_shot(shot) == nullptr) return true;
+
+	if(owner_state.key_state.shoot && !previous_keys.shoot) {
+		if(state.state){
+			round.remove_shot(shot);
+			return true;
+		} else {
+			state.state = 1;
+			shot = round.add_shot(make_unique<Shot>(ShotDetails(
+				owner_state.position + owner_state.direction * CANNON_LENGTH,
+				owner_state.direction * BOMB_SPEED,
+				BOMB_RADIUS, -1, ShotDetails::Type::ROUND,
+				owner
+			)));
+		}
+	}
+	return false;
+}
+
 
 Tank::Tank(Game& game, int index) :
 	game(game),
 	index(index),
-	shot_manager(index),
+	shot_manager(make_unique<ShotManager>(index, game)),
 	upgrade(nullptr),
 	state(
 		{ .x = -1, .y = -1 } /*position*/,
@@ -331,6 +420,9 @@ void Tank::set_upgrade(Upgrade::Type type){
 	case Upgrade::Type::LASER:
 		upgrade = make_unique<LaserManager>(index);
 		break;
+	case Upgrade::Type::BOMB:
+		upgrade = make_unique<BombManager>(index, game);
+		break;
 	}
 }
 
@@ -338,11 +430,11 @@ void Tank::reset(int maze_w, int maze_h){
 	state.position.x = Number(2 * rand_range(0, maze_w) + 1) / 2;
 	state.position.y = Number(2 * rand_range(0, maze_h) + 1) / 2;
 
-	state.direction = random_direction();
+	state.direction = random_discrete_direction();
 	state.key_state = KeyState();
 	pending_keys.clear();
 
-	shot_manager.reset();
+	shot_manager->reset();
 	upgrade = nullptr;
 
 	state.alive = true;
@@ -379,7 +471,7 @@ void Tank::advance(Round& round){
 	}
 	else{
 		advance_tank(state, game.get_maze());
-		shot_manager.step(state, previous_keys, round);
+		shot_manager->step(state, previous_keys, round);
 	}
 }
 
@@ -425,4 +517,34 @@ const ShotDetails& Shot::get_state() const{
 }
 const vector<TimePoint>& Shot::get_path() const{
 	return path;
+}
+
+Shrapnel::Shrapnel(const ShrapnelDetails& details, const Maze& maze) :
+	state({
+		.details = details,
+		.collision = get_shrapnel_wall_collision(details, maze),
+		.timer = 0,
+	}) {}
+
+bool Shrapnel::step(
+	const Maze& maze, const vector<const TankState*>& tanks,
+	vector<int>& killed_tanks
+) {
+	auto start_fraction = get_shrapnel_way(state.timer++);
+	if(state.timer > SHRAPNEL_TTL) return true;
+	if(start_fraction > state.collision) return false;
+	
+	auto end_fraction = get_shrapnel_way(state.timer);
+	if(end_fraction > state.collision) end_fraction = state.collision;
+	for(int i = 0; i < tanks.size(); i++){
+		auto fraction = get_shrapnel_tank_collision(state.details, *tanks[i]);
+		if(start_fraction < fraction && fraction < end_fraction){
+			killed_tanks.push_back(i);
+		}
+	}
+	return false;
+}
+
+const ShrapnelState& Shrapnel::get_state() const{
+	return state;
 }

@@ -201,6 +201,24 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 			}
 		}
 		
+		for(auto shrapnel: view->get_shrapnels()){
+			auto start_fraction = get_shrapnel_way(shrapnel->timer - 1);
+			if(start_fraction > shrapnel->collision) start_fraction = shrapnel->collision;
+			auto end_fraction = get_shrapnel_way(shrapnel->timer);
+			if(end_fraction > shrapnel->collision) end_fraction = shrapnel->collision;
+			auto start = shrapnel->details.start + shrapnel->details.distance * start_fraction;
+			auto end = shrapnel->details.start + shrapnel->details.distance * end_fraction;
+			
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);			
+			SDL_RenderDrawLine(
+				renderer,
+				DRAW_SCALE * (WALL_WIDTH + start.x),
+				DRAW_SCALE * (WALL_WIDTH + start.y),
+				DRAW_SCALE * (WALL_WIDTH + end.x),
+				DRAW_SCALE * (WALL_WIDTH + end.y)
+			);
+		}
+		
 		auto tank_states = view->get_states();
 		for(int i = 0; i < tank_states.size(); i++){
 			if(!tank_states[i].state.alive) continue;

@@ -27,6 +27,8 @@ extern const Number LASER_RADIUS;
 extern const Number LASER_SPEED;
 extern const int LASER_TTL;
 
+extern const int SHRAPNEL_TTL;
+
 Point rotate(const Point& direction, const Point& rotation);
 
 double length(const Point& point);
@@ -34,6 +36,8 @@ double length(const Point& point);
 void normalize(Point& point);
 
 // random discrete direction
+Point random_discrete_direction();
+
 Point random_direction();
 
 struct Collision{

@@ -1,6 +1,11 @@
 #include "utils.h"
-#include <stdlib.h>
+#include <random>
+#include <chrono>
+
+using namespace std;
+using namespace std::chrono;
 
 int rand_range(int min, int max){
-	return rand()%(max-min) + min;
+	static default_random_engine engine(system_clock::now().time_since_epoch().count());
+	return uniform_int_distribution<int>(min, max - 1)(engine);
 }

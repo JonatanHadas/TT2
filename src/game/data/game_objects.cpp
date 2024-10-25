@@ -160,3 +160,31 @@ ShrapnelDetails ShrapnelDetails::deserialize(istream& input){
 	
 	return ShrapnelDetails(start, distance);
 }
+
+MissileDetails::MissileDetails(
+	const Point position,
+	const Point direction,
+	int owner
+) :
+	position(position),
+	direction(direction),
+	owner(owner) {
+	
+}
+
+void MissileDetails::serialize(ostream& output) const{
+	serialize_value(output, position);
+	serialize_value(output, direction);
+	serialize_value(output, owner);
+}
+MissileDetails MissileDetails::deserialize(istream& input){
+	auto position = deserialize_value<Point>(input);
+	auto direction = deserialize_value<Point>(input);
+	auto owner = deserialize_value<int>(input);
+	
+	return MissileDetails(
+		position,
+		direction,
+		owner
+	);
+}

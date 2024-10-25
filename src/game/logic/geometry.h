@@ -29,6 +29,15 @@ extern const int LASER_TTL;
 
 extern const int SHRAPNEL_TTL;
 
+extern const Number MISSILE_WIDTH;
+extern const Number MISSILE_LENGTH;
+extern const Number MISSILE_LAUNCHER_LENGTH;
+
+extern const Number MISSILE_TURN_COS;
+extern const Number MISSILE_TURN_SIN;
+
+extern const Number MISSILE_SPEED;
+
 Point rotate(const Point& direction, const Point& rotation);
 
 double length(const Point& point);

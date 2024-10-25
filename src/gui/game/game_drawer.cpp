@@ -243,6 +243,28 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 				SDL_FLIP_NONE
 			);
 		}
+		
+		for(const auto& missile: view->get_missiles()){
+			SDL_Rect missile_rect;
+			missile_rect.w = DRAW_SCALE * MISSILE_WIDTH;
+			missile_rect.h = DRAW_SCALE * MISSILE_LENGTH;
+			missile_rect.x = (missile.state.position.x + WALL_WIDTH) * DRAW_SCALE - missile_rect.w / 2;
+			missile_rect.y = (missile.state.position.y + WALL_WIDTH) * DRAW_SCALE - missile_rect.h / 2;
+			
+			SDL_SetTextureColorMod(
+				tank_texture->get(),
+				tank_colors[settings.colors[missile.state.owner]].r,
+				tank_colors[settings.colors[missile.state.owner]].g,
+				tank_colors[settings.colors[missile.state.owner]].b
+			);
+			SDL_RenderCopyEx(
+				renderer,
+				tank_texture->get(),
+				NULL, &missile_rect,
+				angle(missile.state.direction), NULL,
+				SDL_FLIP_NONE
+			);
+		}			
 	});
 }
 

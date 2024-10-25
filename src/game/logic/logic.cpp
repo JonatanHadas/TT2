@@ -331,6 +331,64 @@ bool check_missile_tank_collision(
 	);
 }
 
+const Number TURN_THRESHOLD = Number(1)/20;
+
+int target_missile_turn(
+	const MazeMap& maze_map,
+	const MissileDetails& missile,
+	const vector<const TankState*>& tanks,
+	int& target
+){
+	target = -1;
+	Direction direction = {
+		.dx = 0, .dy = 0,
+		.distance = -1
+	};
+	
+	for(int i = 0; i < tanks.size(); i++){
+		if(!tanks[i]->alive) continue;
+		auto current_direction = maze_map.get_direction(
+			missile.position.x, missile.position.y,
+			tanks[i]->position.x, tanks[i]->position.y
+		);
+		
+		if(
+			target == -1 || 
+			current_direction.distance < direction.distance || (			
+				current_direction.distance == 0 &&
+				length(tanks[i]->position - missile.position) < length(tanks[target]->position - missile.position)
+			)
+		){
+			direction = current_direction;
+			target = i;
+		}
+	}
+	
+	if(target == -1) {
+		return 0;
+	}
+	
+	Point target_position = tanks[target]->position;
+	if(direction.distance > 0){
+		target_position = { .x = 1, .y = 1 };
+		target_position /= 2;
+		target_position.x += (int)missile.position.x + direction.dx;
+		target_position.y += (int)missile.position.y + direction.dy;
+	}
+	
+	Point target_direction = target_position - missile.position;
+	normalize(target_direction);
+	Number turn_direction = cross(missile.direction, target_direction);	
+	
+	if(turn_direction > TURN_THRESHOLD){
+		return 1;
+	}
+	if(turn_direction < -TURN_THRESHOLD){
+		return -1;
+	}
+	return 0;
+}
+
 Number get_shrapnel_wall_collision(const ShrapnelDetails& shrapnel, const Maze& maze){
 	int sections = 1 + 2 * length(shrapnel.distance);
 	Point position = shrapnel.start;

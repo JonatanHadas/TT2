@@ -66,7 +66,7 @@ int main(int argc, char** argv){
 	);
 	
 	set<Upgrade::Type> allowed_upgrades({
-		Upgrade::Type::RC_MISSILE
+		Upgrade::Type::HOMING_MISSILE
 	});
 
 	Game game(MazeGeneration::EXPAND_TREE, allowed_upgrades, settings.colors.size());

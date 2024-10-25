@@ -31,6 +31,7 @@ const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
 	{ Upgrade::Type::LASER, register_image(UPGRADES "laser") },
 	{ Upgrade::Type::BOMB, register_image(UPGRADES "bomb") },
 	{ Upgrade::Type::RC_MISSILE, register_image(UPGRADES "rc_missile") },
+	{ Upgrade::Type::HOMING_MISSILE, register_image(UPGRADES "homing_missile") },
 });
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :

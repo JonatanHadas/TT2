@@ -69,7 +69,8 @@ public:
 		GATLING = 0,
 		LASER = 1,
 		BOMB = 2,
-		RC_MISSILE = 3
+		RC_MISSILE = 3,
+		HOMING_MISSILE = 4
 	} type;
 	int x, y;
 	

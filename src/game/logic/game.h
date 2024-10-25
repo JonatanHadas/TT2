@@ -7,6 +7,8 @@
 #include <map>
 #include <deque>
 
+#include "maze.h"
+
 #include "../../utils/numbers.h"
 
 #include "../data/game_objects.h"
@@ -163,6 +165,19 @@ public:
 	bool allow_moving() const;
 };
 
+class HomingMissileManager : public AppliedUpgrade{
+	const int owner;
+	int missile;
+public:
+	HomingMissileManager(int owner);
+	
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
+};
+
 class Tank : public PlayerInterface{
 	Game& game;
 	const int index;
@@ -232,7 +247,7 @@ class MissileController{
 public:
 	virtual int get_turn_direction() const = 0;
 	virtual int get_target() const = 0;
-	virtual void step() = 0;
+	virtual void step(const MissileDetails& missile, const vector<const TankState*>& tanks) = 0;
 };
 
 class RemoteMissileController : public MissileController{
@@ -242,9 +257,21 @@ public:
 
 	int get_turn_direction() const;
 	int get_target() const;
-	void step();
+	void step(const MissileDetails& missile, const vector<const TankState*>& tanks);
 	
 	void steer(int direction);
+};
+
+class HomingMissileController : public MissileController{
+	int timer;
+	int target, turn_state;
+	const MazeMap& maze_map;
+public:
+	HomingMissileController(const MazeMap& maze_map);
+
+	int get_turn_direction() const;
+	int get_target() const;
+	void step(const MissileDetails& missile, const vector<const TankState*>& tanks);
 };
 
 class Missile : public Projectile{
@@ -280,10 +307,12 @@ class Round{
 	void create_upgrade();
 
 	const Maze maze;
+	const MazeMap maze_map;
 public:
 	Round(Game& game, MazeGeneration maze_generation, const vector<Upgrade::Type>& allowed_upgrades);
 
 	const Maze& get_maze() const;
+	const MazeMap& get_maze_map() const;
 
 	void step();
 

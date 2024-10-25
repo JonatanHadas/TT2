@@ -66,7 +66,7 @@ HEADS_gui/game/tank_images := gui/game/tank_images gui/utils/images gui/utils/ut
 
 ## Executables
 
-HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/interface/game_observer_hub game/interface/game_observer game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller gui/game/tank_images
+HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/logic/maze game/interface/game_view game/interface/game_advancer game/interface/player_interface game/interface/game_observer_hub game/interface/game_observer game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller gui/game/tank_images
 
 CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset game/interface/game_observer_hub gui/utils/images gui/game/tank_images
 SERVER_OBJECTS := 

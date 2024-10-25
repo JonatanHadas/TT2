@@ -461,7 +461,7 @@ bool RemoteControlMissileManager::step(
 		controller->steer((owner_state.key_state.right ? 1 : 0) - (owner_state.key_state.left ? 1 : 0));
 	}
 	else{
-		if(owner_state.key_state.shoot && ! previous_keys.shoot){
+		if(owner_state.key_state.shoot && !previous_keys.shoot){
 			state.state = 1;
 			auto missile_control = make_unique<RemoteMissileController>();
 			controller = missile_control.get();
@@ -472,6 +472,40 @@ bool RemoteControlMissileManager::step(
 					owner
 				),
 				move(missile_control)
+			));
+		}
+	}
+	
+	return false;
+}
+
+HomingMissileManager::HomingMissileManager(int owner) :
+	AppliedUpgrade({
+		.type = Upgrade::Type::HOMING_MISSILE,
+		.state = 0,
+		.timer = 0
+	}),
+	owner(owner) {
+}
+
+bool HomingMissileManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+	){
+	if(state.state){
+		return round.get_missile(missile) != nullptr;
+	}
+	else{
+		if(owner_state.key_state.shoot && !previous_keys.shoot){
+			state.state = 1;
+			missile = round.add_missile(make_unique<Missile>(
+				MissileDetails(
+					owner_state.position + owner_state.direction * MISSILE_LAUNCHER_LENGTH,
+					owner_state.direction,
+					owner
+				),
+				make_unique<HomingMissileController>(round.get_maze_map())
 			));
 		}
 	}
@@ -514,6 +548,9 @@ void Tank::set_upgrade(Upgrade::Type type){
 		break;
 	case Upgrade::Type::RC_MISSILE:
 		upgrade = make_unique<RemoteControlMissileManager>(index);
+		break;
+	case Upgrade::Type::HOMING_MISSILE:
+		upgrade = make_unique<HomingMissileManager>(index);
 		break;
 	}
 }
@@ -649,12 +686,34 @@ int RemoteMissileController::get_turn_direction() const {
 int RemoteMissileController::get_target() const {
 	return -1;
 }
-void RemoteMissileController::step() {
+void RemoteMissileController::step(const MissileDetails& missile, const vector<const TankState*>& tanks) {
 	turn_state = 0;
 }
 
 void RemoteMissileController::steer(int direction){
 	turn_state = direction;
+}
+
+const int HOMING_TIME = 60;
+
+HomingMissileController::HomingMissileController(const MazeMap& maze_map) :
+	maze_map(maze_map),
+	timer(HOMING_TIME),
+	target(-1), turn_state(0) {}
+
+int HomingMissileController::get_turn_direction() const{
+	return turn_state;
+}
+int HomingMissileController::get_target() const{
+	return target;
+}
+void HomingMissileController::step(const MissileDetails& missile, const vector<const TankState*>& tanks){
+	if(timer > 0){
+		timer--;
+		return;
+	}
+	
+	turn_state = target_missile_turn(maze_map, missile, tanks, target);
 }
 
 const int MISSILE_TTL = 1200;
@@ -684,7 +743,7 @@ bool Missile::step(
 		}
 	}
 	
-	controller->step();
+	controller->step(state, tanks);
 	
 	if(timer > 0) timer--;
 	return timer == 0;

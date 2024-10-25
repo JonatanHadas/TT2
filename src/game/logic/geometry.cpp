@@ -93,7 +93,7 @@ static inline Number dot(const Point& point1, const Point& point2){
 	return point1.x * point2.x + point1.y * point2.y;
 }
 
-static inline Number cross(const Point& point1, const Point& point2){
+Number cross(const Point& point1, const Point& point2){
 	return point1.x * point2.y - point1.y * point2.x;
 }
 

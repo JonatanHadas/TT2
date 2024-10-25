@@ -1,6 +1,8 @@
 #ifndef _GAME_LOGIC_H
 #define _GAME_LOGIC_H
 
+#include "maze.h"
+
 #include "../data/game_objects.h"
 
 void advance_tank(TankState& tank, const Maze& maze);
@@ -21,6 +23,12 @@ void advance_missile(
 bool check_missile_tank_collision(
 	const MissileDetails& missile,
 	const TankState& tank
+);
+int target_missile_turn(
+	const MazeMap& maze_map,
+	const MissileDetails& missile,
+	const vector<const TankState*>& tanks,
+	int& target
 );
 
 Number get_shrapnel_wall_collision(const ShrapnelDetails& shrapnel, const Maze& maze);

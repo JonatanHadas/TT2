@@ -44,6 +44,8 @@ double length(const Point& point);
 
 void normalize(Point& point);
 
+Number cross(const Point& point1, const Point& point2);
+
 // random discrete direction
 Point random_discrete_direction();
 

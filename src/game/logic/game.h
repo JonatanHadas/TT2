@@ -20,6 +20,7 @@ class Tank;
 class Shot;
 class Round;
 class WeaponManager;
+class RemoteMissileController;
 
 class Game : public GameView, public GameAdvancer, public GameObserverHub {
 	const MazeGeneration maze_generation;
@@ -46,6 +47,7 @@ public:
 	const Maze& get_maze() const;
 	vector<TankCompleteState> get_states() const;
 	vector<ShotPath> get_shots() const;
+	vector<MissileState> get_missiles() const;
 	vector<const ShrapnelState*> get_shrapnels() const;
 	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 
@@ -145,6 +147,22 @@ public:
 	void on_shot_removed(int shot_id);
 };
 
+class RemoteControlMissileManager : public AppliedUpgrade{
+	const int owner;
+	int missile;
+	RemoteMissileController* controller;
+public:
+	RemoteControlMissileManager(int owner);
+	
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
+	
+	bool allow_moving() const;
+};
+
 class Tank : public PlayerInterface{
 	Game& game;
 	const int index;
@@ -210,6 +228,42 @@ public:
 	const ShrapnelState& get_state() const;
 };
 
+class MissileController{
+public:
+	virtual int get_turn_direction() const = 0;
+	virtual int get_target() const = 0;
+	virtual void step() = 0;
+};
+
+class RemoteMissileController : public MissileController{
+	int turn_state;
+public:
+	RemoteMissileController();
+
+	int get_turn_direction() const;
+	int get_target() const;
+	void step();
+	
+	void steer(int direction);
+};
+
+class Missile : public Projectile{
+	MissileDetails state;
+	unique_ptr<MissileController> controller;
+	bool ignoring_owner;
+	int timer;
+protected:
+	bool step(
+		const Maze& maze, const vector<const TankState*>& tanks,
+		vector<int>& killed_tanks
+	);
+public:
+	Missile(MissileDetails&& details, unique_ptr<MissileController>&& controller);
+	
+	const MissileDetails& get_state() const;
+	const int get_target() const;
+};
+
 class Round{
 	Game& game;
 	const vector<Upgrade::Type>& allowed_upgrades;
@@ -218,6 +272,8 @@ class Round{
 	map<int, unique_ptr<Shot>> shots;
 	set<int> removed_shots;
 	set<unique_ptr<Shrapnel>> shrapnels;
+	map<int, unique_ptr<Missile>> missiles;
+	set<int> removed_missiles;
 
 	set<unique_ptr<Upgrade>> upgrades;
 	int upgrade_timer;
@@ -234,7 +290,13 @@ public:
 	int add_shot(unique_ptr<Shot>&& shot);
 	void remove_shot(int shot_id);
 	Shot* get_shot(int shot_id) const;
+
+	int add_missile(unique_ptr<Missile>&& missile);
+	void remove_missile(int missile_id);
+	Missile* get_missile(int missile_id) const;
+
 	const map<int, unique_ptr<Shot>>& get_shots() const;
+	const map<int, unique_ptr<Missile>>& get_missiles() const;
 
 	void explode(const Point& source);
 	const set<unique_ptr<Shrapnel>>& get_shrapnels() const;

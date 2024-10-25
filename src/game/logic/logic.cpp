@@ -274,6 +274,63 @@ int advance_shot(
 	return tank_collision;
 }
 
+void advance_missile(
+	MissileDetails& missile,
+	int turn_direction,
+	const Maze& maze
+){
+	if(turn_direction){
+		missile.direction = rotate(
+			missile.direction,
+			{ .x = MISSILE_TURN_COS, .y = turn_direction * MISSILE_TURN_SIN }
+		);
+		normalize(missile.direction);
+	}
+	
+	missile.position += missile.direction * MISSILE_SPEED;
+	
+	const auto rect = get_rotated_rectangle(
+		missile.position,
+		missile.direction,
+		MISSILE_WIDTH, MISSILE_LENGTH
+	);
+
+	for(const auto& wall: get_maze_polygons(missile.position.x, missile.position.y, maze)){
+		Collision collision = {
+			.position = { .x = 0, .y = 0 },
+			.normal = { .x = 0, .y = 0 },
+			.depth = 0
+		};
+		if(polygon_collision(rect, wall, collision)){
+			if(collision.normal.x * missile.direction.x > 0) missile.direction.x = -missile.direction.x;
+			if(collision.normal.y * missile.direction.y > 0) missile.direction.y = -missile.direction.y;
+		}
+	}
+}
+bool check_missile_tank_collision(
+	const MissileDetails& missile,
+	const TankState& tank
+){
+	Collision collision = {
+		.position = { .x = 0, .y = 0 },
+		.normal = { .x = 0, .y = 0 },
+		.depth = 0
+	};
+	return tank.alive && polygon_collision(
+		get_rotated_rectangle(
+			missile.position,
+			missile.direction,
+			MISSILE_WIDTH, MISSILE_LENGTH
+		),
+		get_rotated_rectangle(
+			tank.position,
+			tank.direction,
+			TANK_WIDTH, TANK_LENGTH
+		),
+		collision
+	);
+}
+
 Number get_shrapnel_wall_collision(const ShrapnelDetails& shrapnel, const Maze& maze){
 	int sections = 1 + 2 * length(shrapnel.distance);
 	Point position = shrapnel.start;

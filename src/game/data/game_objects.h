@@ -68,7 +68,8 @@ public:
 	enum class Type : unsigned char{
 		GATLING = 0,
 		LASER = 1,
-		BOMB = 2
+		BOMB = 2,
+		RC_MISSILE = 3
 	} type;
 	int x, y;
 	
@@ -116,6 +117,22 @@ public:
 	
 	void serialize(ostream& output) const;
 	static ShrapnelDetails deserialize(istream& input);
+};
+
+class MissileDetails{
+public:
+	MissileDetails(
+		const Point position,
+		const Point direction,
+		int owner
+	);
+	
+	Point position;
+	Point direction;
+	int owner;
+
+	void serialize(ostream& output) const;
+	static MissileDetails deserialize(istream& input);
 };
 
 #endif

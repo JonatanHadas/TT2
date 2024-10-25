@@ -6,6 +6,7 @@
 class GameObserver{
 public:
 	virtual void on_shot_removed(int shot_id) {};
+	virtual void on_missile_removed(int missile_id) {};
 };
 
 #endif

@@ -35,6 +35,15 @@ const int LASER_TTL = 20;
 
 const int SHRAPNEL_TTL = 90;
 
+const Number MISSILE_WIDTH = Number(7)/100;
+const Number MISSILE_LENGTH = Number(1)/5;
+const Number MISSILE_LAUNCHER_LENGTH = Number(1) / 5;
+
+const Number MISSILE_TURN_COS = cos(M_PI / 36);
+const Number MISSILE_TURN_SIN = sin(M_PI / 36);
+
+const Number MISSILE_SPEED = Number(7)/200;
+
 Point rotate(const Point& direction, const Point& rotation) {
 	return {
 		.x = direction.x * rotation.x - direction.y * rotation.y,

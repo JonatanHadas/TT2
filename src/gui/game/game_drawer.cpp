@@ -30,9 +30,8 @@ const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
 	{ Upgrade::Type::GATLING, register_image(UPGRADES "gatling") },
 	{ Upgrade::Type::LASER, register_image(UPGRADES "laser") },
 	{ Upgrade::Type::BOMB, register_image(UPGRADES "bomb") },
+	{ Upgrade::Type::RC_MISSILE, register_image(UPGRADES "rc_missile") },
 });
-
-#include <iostream>
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
 	view(view),
@@ -69,6 +68,8 @@ const Texture& get_cannon_image(const TankUpgradeState* upgrade, const TankImage
 		return image.laser_gun;
 	case Upgrade::Type::BOMB:
 		return image.thick_cannon;
+	case Upgrade::Type::RC_MISSILE:
+		return image.launcher;
 	default:
 		return image.cannon;
 	}
@@ -418,7 +419,45 @@ void BoardDrawer::draw_tanks(SDL_Renderer* renderer){
 			direction, NULL,
 			SDL_FLIP_NONE
 		);
+		
+		if(tank_states[i].upgrade != nullptr){
+			switch(tank_states[i].upgrade->type){
+			case Upgrade::Type::RC_MISSILE:
+				if(tank_states[i].upgrade->state) break;
+				tank_rect.w = DRAW_SCALE * MISSILE_WIDTH;
+				tank_rect.h = DRAW_SCALE * MISSILE_LENGTH;
+				tank_rect.x = draw_x + DRAW_SCALE * MISSILE_LAUNCHER_LENGTH * tank_states[i].state.direction.x - tank_rect.w / 2;
+				tank_rect.y = draw_y + DRAW_SCALE * MISSILE_LAUNCHER_LENGTH * tank_states[i].state.direction.y - tank_rect.h / 2;
+				
+				SDL_RenderCopyEx(
+					renderer,
+					tank_images[i].missile.get(),
+					NULL, &tank_rect,
+					direction, NULL,
+					SDL_FLIP_NONE
+				);
+				break;
+			}
+		}
 	}
+}
+
+void BoardDrawer::draw_missiles(SDL_Renderer* renderer){
+	for(const auto& missile: view->get_missiles()){
+		SDL_Rect missile_rect;
+		missile_rect.w = DRAW_SCALE * MISSILE_WIDTH;
+		missile_rect.h = DRAW_SCALE * MISSILE_LENGTH;
+		missile_rect.x = (missile.state.position.x + WALL_WIDTH) * DRAW_SCALE - missile_rect.w / 2;
+		missile_rect.y = (missile.state.position.y + WALL_WIDTH) * DRAW_SCALE - missile_rect.h / 2;
+		
+		SDL_RenderCopyEx(
+			renderer,
+			tank_images[missile.state.owner].missile.get(),
+			NULL, &missile_rect,
+			angle(missile.state.direction), NULL,
+			SDL_FLIP_NONE
+		);
+	}			
 }
 
 
@@ -432,6 +471,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		draw_shots(renderer);
 		draw_shrapnel(renderer);
 		draw_tanks(renderer);
+		draw_missiles(renderer);
 	});
 }
 

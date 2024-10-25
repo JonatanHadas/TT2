@@ -41,6 +41,7 @@ class BoardDrawer{
 	void draw_lasers(SDL_Renderer* renderer);
 	void draw_shrapnel(SDL_Renderer* renderer);
 	void draw_tanks(SDL_Renderer* renderer);
+	void draw_missiles(SDL_Renderer* renderer);
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);
 	

@@ -81,6 +81,16 @@ vector<ShotPath> Game::get_shots() const{
 
 	return shots;
 }
+vector<MissileState> Game::get_missiles() const{
+	vector<MissileState> missiles;
+	for(const auto& entry: round->get_missiles()){
+		missiles.push_back({
+			.state=entry.second->get_state(),
+			.target=entry.second->get_target()
+		});
+	}
+	return missiles;
+}
 vector<const ShrapnelState*> Game::get_shrapnels() const{
 	vector<const ShrapnelState*> shrapnels;
 	for(const auto& shrapnel: round->get_shrapnels()){
@@ -139,6 +149,25 @@ const map<int, unique_ptr<Shot>>& Round::get_shots() const{
 	return shots;
 }
 
+int Round::add_missile(unique_ptr<Missile>&& missile){
+	int missile_id = next_id++;
+	missiles.insert({missile_id, move(missile)});
+	return missile_id;
+}
+void Round::remove_missile(int missile_id){
+	game.on_missile_removed(missile_id);
+	missiles.erase(missile_id);
+}
+Missile* Round::get_missile(int missile_id) const{
+	auto it = missiles.find(missile_id);
+	if(it == missiles.end()) return nullptr;
+	return it->second.get();
+}
+const map<int, unique_ptr<Missile>>& Round::get_missiles() const{
+	return missiles;
+}
+
+
 const Number EXPLOSION_SIZE = 5;
 const Number MIN_EXPLOSION_RANGE = 4;
 const int EXPLOSION_SHRAPNEL_COUNT = 100;
@@ -191,6 +220,16 @@ void Round::step(){
 	for(const auto& shot_entry: shots){
 		if(shot_entry.second->advance(game)){
 			removed_shots.insert(shot_entry.first);
+		}
+	}
+
+	for(int missile_id: removed_missiles){
+		remove_missile(missile_id);
+	}
+	removed_missiles.clear();
+	for(const auto& missile_entry: missiles){
+		if(missile_entry.second->advance(game)){
+			removed_missiles.insert(missile_entry.first);
 		}
 	}
 	
@@ -394,6 +433,49 @@ bool BombManager::step(
 	return false;
 }
 
+RemoteControlMissileManager::RemoteControlMissileManager(int owner) :
+	AppliedUpgrade({
+		.type = Upgrade::Type::RC_MISSILE,
+		.state = 0,
+		.timer = 0
+	}),
+	controller(nullptr),
+	owner(owner) {
+}
+
+bool RemoteControlMissileManager::allow_moving() const {
+	return state.state == 0;
+}
+
+bool RemoteControlMissileManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+	){
+	
+	if(state.state){
+		if(round.get_missile(missile) == nullptr) return true;
+		controller->steer((owner_state.key_state.right ? 1 : 0) - (owner_state.key_state.left ? 1 : 0));
+	}
+	else{
+		if(owner_state.key_state.shoot && ! previous_keys.shoot){
+			state.state = 1;
+			auto missile_control = make_unique<RemoteMissileController>();
+			controller = missile_control.get();
+			missile = round.add_missile(make_unique<Missile>(
+				MissileDetails(
+					owner_state.position + owner_state.direction * MISSILE_LAUNCHER_LENGTH,
+					owner_state.direction,
+					owner
+				),
+				move(missile_control)
+			));
+		}
+	}
+	
+	return false;
+}
+
 
 Tank::Tank(Game& game, int index) :
 	game(game),
@@ -426,6 +508,9 @@ void Tank::set_upgrade(Upgrade::Type type){
 		break;
 	case Upgrade::Type::BOMB:
 		upgrade = make_unique<BombManager>(index, game);
+		break;
+	case Upgrade::Type::RC_MISSILE:
+		upgrade = make_unique<RemoteControlMissileManager>(index);
 		break;
 	}
 }
@@ -551,4 +636,61 @@ bool Shrapnel::step(
 
 const ShrapnelState& Shrapnel::get_state() const{
 	return state;
+}
+
+RemoteMissileController::RemoteMissileController() : turn_state(0) {}
+
+int RemoteMissileController::get_turn_direction() const {
+	return turn_state;
+}
+int RemoteMissileController::get_target() const {
+	return -1;
+}
+void RemoteMissileController::step() {
+	turn_state = 0;
+}
+
+void RemoteMissileController::steer(int direction){
+	turn_state = direction;
+}
+
+const int MISSILE_TTL = 1200;
+
+Missile::Missile(MissileDetails&& details, unique_ptr<MissileController>&& controller) :
+	state(move(details)),
+	controller(move(controller)),
+	timer(MISSILE_TTL),
+	ignoring_owner(true) {
+
+}
+
+bool Missile::step(
+	const Maze& maze, const vector<const TankState*>& tanks,
+	vector<int>& killed_tanks
+){
+	advance_missile(state, controller->get_turn_direction(), maze);
+	
+	for(int i = 0; i < tanks.size(); i++){
+		if(check_missile_tank_collision(state, *tanks[i])){
+			if(state.owner == i && ignoring_owner) continue;
+			killed_tanks.push_back(i);
+			return true;
+		}
+		else if(i == state.owner){
+			ignoring_owner = false;
+		}
+	}
+	
+	controller->step();
+	
+	if(timer > 0) timer--;
+	return timer == 0;
+}
+
+const MissileDetails& Missile::get_state() const{
+	return state;
+}
+
+const int Missile::get_target() const{
+	return controller->get_target();
 }

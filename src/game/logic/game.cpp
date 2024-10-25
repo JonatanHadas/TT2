@@ -494,7 +494,7 @@ bool HomingMissileManager::step(
 	Round& round
 	){
 	if(state.state){
-		return round.get_missile(missile) != nullptr;
+		return round.get_missile(missile) == nullptr;
 	}
 	else{
 		if(owner_state.key_state.shoot && !previous_keys.shoot){

@@ -64,7 +64,7 @@ HEADS_gui/game/game_gui := gui/game/game_gui gui/gui gui/game/game_drawer gui/ut
 
 ## Executables
 
-HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/interface/game_view game/interface/game_advancer game/interface/player_interface game/interface/game_observer_hub game/interface/game_observer game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller
+HEADS_client_main := gui/game/game_gui gui/gui gui/game/game_drawer gui/utils/utils gui/utils/colors game/logic/game game/logic/maze game/interface/game_view game/interface/game_advancer game/interface/player_interface game/interface/game_observer_hub game/interface/game_observer game/data/game_objects utils/numbers gui/controls/keyset gui/controls/controller
 
 CLIENT_OBJECTS := client_main gui/gui gui/game/game_gui gui/game/game_drawer gui/utils/utils gui/utils/clock gui/utils/colors gui/controls/keyset game/interface/game_observer_hub
 SERVER_OBJECTS := 

@@ -7,6 +7,8 @@
 #include <map>
 #include <deque>
 
+#include "maze.h"
+
 #include "../../utils/numbers.h"
 
 #include "../data/game_objects.h"
@@ -280,10 +282,12 @@ class Round{
 	void create_upgrade();
 
 	const Maze maze;
+	const MazeMap maze_map;
 public:
 	Round(Game& game, MazeGeneration maze_generation, const vector<Upgrade::Type>& allowed_upgrades);
 
 	const Maze& get_maze() const;
+	const MazeMap& get_maze_map() const;
 
 	void step();
 

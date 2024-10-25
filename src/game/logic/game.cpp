@@ -4,7 +4,6 @@
 
 #include "geometry.h"
 #include "logic.h"
-#include "maze.h"
 
 Game::Game(
 	MazeGeneration maze_generation,
@@ -123,12 +122,16 @@ Round::Round(Game& game, MazeGeneration maze_generation, const vector<Upgrade::T
 	allowed_upgrades(allowed_upgrades),
 	next_id(0),
 	upgrade_timer(rand_range(MIN_UPGRADE_TIME, MAX_UPGRADE_TIME)),
-	maze(generate_maze(maze_generation, rand_range(5, 12), rand_range(5, 12))) {
+	maze(generate_maze(maze_generation, rand_range(5, 12), rand_range(5, 12))),
+	maze_map(maze) {
 
 }
 
 const Maze& Round::get_maze() const{
 	return maze;
+}
+const MazeMap& Round::get_maze_map() const{
+	return maze_map;
 }
 
 int Round::add_shot(unique_ptr<Shot>&& shot){

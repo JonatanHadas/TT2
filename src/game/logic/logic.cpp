@@ -457,3 +457,38 @@ bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade){
 		collision
 	);
 }
+
+static inline vector<Point> get_mine_polygon(const Point& position, const Point& direction){
+	static const Point mine_vertices[2] = {
+		{ .x = (MINE_SIZE * 4) / 5, .y = -MINE_SIZE / 5 },
+		{ .x = (MINE_SIZE * 4) / 5, .y = MINE_SIZE / 5 },
+	};
+	static const Point mine_rotations[3] = {
+		{ .x = 1, .y = 0 },
+		{ .x = -Number(1) / 2, .y = sqrt(3)/2 },
+		{ .x = -Number(1) / 2, .y = -sqrt(3)/2 },
+	};
+
+	vector<Point> polygon;
+	for(const Point& rotation: mine_rotations){
+		Point total_rotation = rotate(rotation, direction);
+		for(const Point& vertex: mine_vertices){
+			normalize(total_rotation);
+			polygon.push_back(position + rotate(vertex, total_rotation));
+		}
+	}
+	return polygon;
+}
+
+bool check_mine_collision(const MineDetails& mine, const TankState& tank){
+	Collision collision = { .position = { .x = 0, .y = 0 }, .normal = { .x = 0, .y = 0 }, .depth = 0 };
+		
+	return polygon_collision(
+		get_rotated_rectangle(
+			tank.position, tank.direction,
+			TANK_WIDTH, TANK_LENGTH
+		),
+		get_mine_polygon(mine.position, mine.direction),
+		collision
+	);
+}

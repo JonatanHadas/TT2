@@ -120,6 +120,30 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 	texture->do_with_texture(renderer, [&](){
 		SDL_SetRenderDrawColor(renderer, board_color.r, board_color.g, board_color.b, board_color.a);
 		SDL_RenderClear(renderer);
+		
+		for(const auto& mine: view->get_mines()){
+			if(mine.state == MineState::INACTIVE) continue;
+			
+			SDL_Rect rect;
+			rect.w = 2 * DRAW_SCALE * MINE_SIZE;
+			rect.h = 2 * DRAW_SCALE * MINE_SIZE;
+			rect.x = DRAW_SCALE * (WALL_WIDTH + mine.details.position.x) - rect.w/2;
+			rect.y = DRAW_SCALE * (WALL_WIDTH + mine.details.position.y) - rect.h/2;
+			
+			SDL_SetTextureColorMod(
+				tank_texture->get(),
+				tank_colors[settings.colors[mine.details.owner]].r,
+				tank_colors[settings.colors[mine.details.owner]].g,
+				tank_colors[settings.colors[mine.details.owner]].b
+			);
+			SDL_RenderCopyEx(
+				renderer,
+				tank_texture->get(),
+				NULL, &rect,
+				angle(mine.details.direction), NULL,
+				SDL_FLIP_NONE
+			);
+		}
 	
 		SDL_SetRenderDrawColor(renderer, wall_color.r, wall_color.g, wall_color.b, wall_color.a);
 		SDL_Rect rect;

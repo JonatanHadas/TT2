@@ -36,5 +36,6 @@ Number get_shrapnel_tank_collision(const ShrapnelDetails& shrapnel, const TankSt
 Number get_shrapnel_way(int time);
 
 bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade);
+bool check_mine_collision(const MineDetails& mine, const TankState& tank);
 
 #endif

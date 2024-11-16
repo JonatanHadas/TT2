@@ -97,6 +97,16 @@ vector<const ShrapnelState*> Game::get_shrapnels() const{
 	}
 	return shrapnels;
 }
+vector<MineCompleteState> Game::get_mines() const{
+	vector<MineCompleteState> mines;
+	for(const auto& entry: round->get_mines()){
+		mines.push_back({
+			.details=entry.second->get_details(),
+			.state=entry.second->get_state()
+		});
+	}
+	return mines;
+}
 const set<unique_ptr<Upgrade>>& Game::get_upgrades() const{
 	return round->get_upgrades();
 }
@@ -170,6 +180,25 @@ const map<int, unique_ptr<Missile>>& Round::get_missiles() const{
 	return missiles;
 }
 
+int Round::add_mine(unique_ptr<Mine>&& mine){
+	int mine_id = next_id++;
+	mines.insert({mine_id, move(mine)});
+	return mine_id;
+}
+void Round::remove_mine(int mine_id){
+	explode(mines[mine_id]->get_details().position);
+	mines.erase(mine_id);
+}
+Mine* Round::get_mine(int mine_id) const{
+	auto it = mines.find(mine_id);
+	if(it == mines.end()) return nullptr;
+	return it->second.get();
+}
+const map<int, unique_ptr<Mine>>& Round::get_mines() const{
+	return mines;
+}
+
+
 
 const Number EXPLOSION_SIZE = 5;
 const Number MIN_EXPLOSION_RANGE = 4;
@@ -234,6 +263,16 @@ void Round::step(){
 		if(missile_entry.second->advance(game)){
 			removed_missiles.insert(missile_entry.first);
 		}
+	}
+	
+	vector<int> removed_mines;
+	for(const auto& mine_entry: mines){
+		if(mine_entry.second->step(game.get_states())){
+			removed_mines.push_back(mine_entry.first);
+		}
+	}
+	for(int mine_id: removed_mines){
+		remove_mine(mine_id);
 	}
 	
 	vector<const unique_ptr<Shrapnel>*> removed_shrapnel;
@@ -513,6 +552,32 @@ bool HomingMissileManager::step(
 	return false;
 }
 
+MineManager::MineManager(int owner) : 
+	AppliedUpgrade({
+		.type = Upgrade::Type::MINES,
+		.state = 0,
+		.timer = 0
+	}),
+	owner(owner),
+	remaining_mines(3) {
+	
+}
+
+bool MineManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+){
+	if(owner_state.key_state.shoot && !previous_keys.shoot){
+		round.add_mine(make_unique<Mine>(MineDetails(
+			owner_state.position - owner_state.direction * MINE_DISTANCE,
+			owner_state.direction,
+			owner
+		)));
+		remaining_mines--;
+	}
+	return remaining_mines == 0;
+}
 
 Tank::Tank(Game& game, int index) :
 	game(game),
@@ -551,6 +616,9 @@ void Tank::set_upgrade(Upgrade::Type type){
 		break;
 	case Upgrade::Type::HOMING_MISSILE:
 		upgrade = make_unique<HomingMissileManager>(index);
+		break;
+	case Upgrade::Type::MINES:
+		upgrade = make_unique<MineManager>(index);
 		break;
 	}
 }
@@ -755,4 +823,48 @@ const MissileDetails& Missile::get_state() const{
 
 const int Missile::get_target() const{
 	return controller->get_target();
+}
+
+const int MINE_TIME = 60;
+
+Mine::Mine(MineDetails&& details) :
+	details(move(details)),
+	timer(MINE_START_TIME),
+	started(false),
+	pressed(false) {
+
+}
+
+bool Mine::step(const vector<TankCompleteState>& tanks){
+	if(timer == 0){
+		if(started) return true;
+		started = true;
+	}
+	if(timer >= 0) {
+		timer--;
+		return false;
+	}
+		
+	bool previously_pressed = pressed;
+	pressed = false;
+	for(const auto tank: tanks){
+		if(check_mine_collision(details, tank.state)){
+			pressed = true;
+		}
+	}
+	if(!pressed && previously_pressed) timer = MINE_TIME;
+	
+	return false;
+}
+
+const MineDetails& Mine::get_details() const{
+	return details;
+}
+
+MineState Mine::get_state() const{
+	if(started && timer >= 0){
+		return MineState::COUNTING;
+	}
+	if(pressed) return MineState::PRESSED;
+	return MineState::INACTIVE;
 }

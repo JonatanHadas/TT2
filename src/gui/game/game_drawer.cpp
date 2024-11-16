@@ -32,6 +32,7 @@ const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
 	{ Upgrade::Type::BOMB, register_image(UPGRADES "bomb") },
 	{ Upgrade::Type::RC_MISSILE, register_image(UPGRADES "rc_missile") },
 	{ Upgrade::Type::HOMING_MISSILE, register_image(UPGRADES "homing_missile") },
+	{ Upgrade::Type::MINES, register_image(UPGRADES "mine") },
 });
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
@@ -176,10 +177,12 @@ void BoardDrawer::resize_canvas(SDL_Renderer* renderer){
 	}
 }
 
-void BoardDrawer::draw_maze(SDL_Renderer* renderer){
+void BoardDrawer::draw_background(SDL_Renderer* renderer){
 	SDL_SetRenderDrawColor(renderer, board_color.r, board_color.g, board_color.b, board_color.a);
 	SDL_RenderClear(renderer);
+}
 
+void BoardDrawer::draw_maze(SDL_Renderer* renderer){
 	SDL_SetRenderDrawColor(renderer, wall_color.r, wall_color.g, wall_color.b, wall_color.a);
 	SDL_Rect rect;
 	rect.w = (2 * WALL_WIDTH + 1) * DRAW_SCALE;
@@ -461,12 +464,45 @@ void BoardDrawer::draw_missiles(SDL_Renderer* renderer){
 	}			
 }
 
+void BoardDrawer::draw_mines(SDL_Renderer* renderer){
+	for(const auto& mine: view->get_mines()){
+		Texture* mine_texture;
+		
+		switch(mine.state){
+			case MineState::PRESSED:
+				mine_texture = &tank_images[mine.details.owner].mine_off;
+				break;
+			case MineState::COUNTING:
+				mine_texture = &tank_images[mine.details.owner].mine_on;
+				break;
+			default:
+				continue;
+		}
+		
+		SDL_Rect rect;
+		rect.w = 2 * DRAW_SCALE * MINE_SIZE;
+		rect.h = 2 * DRAW_SCALE * MINE_SIZE;
+		rect.x = DRAW_SCALE * (WALL_WIDTH + mine.details.position.x) - rect.w/2;
+		rect.y = DRAW_SCALE * (WALL_WIDTH + mine.details.position.y) - rect.h/2;
+		
+		SDL_RenderCopyEx(
+			renderer,
+			mine_texture->get(),
+			NULL, &rect,
+			angle(mine.details.direction), NULL,
+			SDL_FLIP_NONE
+		);
+	}
+}
+
 
 void BoardDrawer::draw(SDL_Renderer* renderer){
 	resize_canvas(renderer);
 	initialize(renderer);
 		
 	texture->do_with_texture(renderer, [&](){
+		draw_background(renderer);
+		draw_mines(renderer);
 		draw_maze(renderer);
 		draw_upgrades(renderer);
 		draw_shots(renderer);

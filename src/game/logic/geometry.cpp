@@ -44,6 +44,10 @@ const Number MISSILE_TURN_SIN = sin(M_PI / 36);
 
 const Number MISSILE_SPEED = Number(7)/200;
 
+const Number MINE_SIZE = Number(3)/20;
+const Number MINE_DISTANCE = Number(1)/2;
+const int MINE_START_TIME = 10;
+
 Point rotate(const Point& direction, const Point& rotation) {
 	return {
 		.x = direction.x * rotation.x - direction.y * rotation.y,

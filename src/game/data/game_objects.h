@@ -70,7 +70,8 @@ public:
 		LASER = 1,
 		BOMB = 2,
 		RC_MISSILE = 3,
-		HOMING_MISSILE = 4
+		HOMING_MISSILE = 4,
+		MINES = 5
 	} type;
 	int x, y;
 	
@@ -123,8 +124,8 @@ public:
 class MissileDetails{
 public:
 	MissileDetails(
-		const Point position,
-		const Point direction,
+		const Point& position,
+		const Point& direction,
 		int owner
 	);
 	
@@ -134,6 +135,28 @@ public:
 
 	void serialize(ostream& output) const;
 	static MissileDetails deserialize(istream& input);
+};
+
+class MineDetails{
+public:
+	MineDetails(
+		const Point& position,
+		const Point& direction,
+		int owner
+	);
+	
+	const Point position;
+	const Point direction;
+	const int owner;
+	
+	void serialize(ostream& output) const;
+	static MineDetails deserialize(istream& input);
+};
+
+enum class MineState : unsigned char{
+	INACTIVE = 0,
+	PRESSED = 1,
+	COUNTING = 2,
 };
 
 #endif

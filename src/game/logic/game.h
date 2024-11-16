@@ -51,6 +51,7 @@ public:
 	vector<ShotPath> get_shots() const;
 	vector<MissileState> get_missiles() const;
 	vector<const ShrapnelState*> get_shrapnels() const;
+	vector<MineCompleteState> get_mines() const;
 	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 
 	void advance();
@@ -178,6 +179,19 @@ public:
 	);
 };
 
+class MineManager : public AppliedUpgrade{
+	const int owner;
+	int remaining_mines;
+public:
+	MineManager(int owner);
+	
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
+};
+
 class Tank : public PlayerInterface{
 	Game& game;
 	const int index;
@@ -291,6 +305,19 @@ public:
 	const int get_target() const;
 };
 
+class Mine{
+	const MineDetails details;
+	int timer;
+	bool started, pressed;
+public:
+	Mine(MineDetails&& details);
+	
+	bool step(const vector<TankCompleteState>& tanks);
+	
+	const MineDetails& get_details() const;
+	MineState get_state() const;
+};
+
 class Round{
 	Game& game;
 	const vector<Upgrade::Type>& allowed_upgrades;
@@ -301,6 +328,7 @@ class Round{
 	set<unique_ptr<Shrapnel>> shrapnels;
 	map<int, unique_ptr<Missile>> missiles;
 	set<int> removed_missiles;
+	map<int, unique_ptr<Mine>> mines;
 
 	set<unique_ptr<Upgrade>> upgrades;
 	int upgrade_timer;
@@ -308,6 +336,8 @@ class Round{
 
 	const Maze maze;
 	const MazeMap maze_map;
+	
+	void remove_mine(int mine_id);
 public:
 	Round(Game& game, MazeGeneration maze_generation, const vector<Upgrade::Type>& allowed_upgrades);
 
@@ -323,9 +353,13 @@ public:
 	int add_missile(unique_ptr<Missile>&& missile);
 	void remove_missile(int missile_id);
 	Missile* get_missile(int missile_id) const;
+	
+	int add_mine(unique_ptr<Mine>&& mine);
+	Mine* get_mine(int mine_id) const;
 
 	const map<int, unique_ptr<Shot>>& get_shots() const;
 	const map<int, unique_ptr<Missile>>& get_missiles() const;
+	const map<int, unique_ptr<Mine>>& get_mines() const;
 
 	void explode(const Point& source);
 	const set<unique_ptr<Shrapnel>>& get_shrapnels() const;

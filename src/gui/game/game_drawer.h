@@ -35,6 +35,7 @@ class BoardDrawer{
 	void initialize(SDL_Renderer* renderer);
 	void resize_canvas(SDL_Renderer* renderer);
 	
+	void draw_background(SDL_Renderer* renderer);
 	void draw_maze(SDL_Renderer* renderer);
 	void draw_upgrades(SDL_Renderer* renderer);
 	void draw_shots(SDL_Renderer* renderer);
@@ -42,6 +43,7 @@ class BoardDrawer{
 	void draw_shrapnel(SDL_Renderer* renderer);
 	void draw_tanks(SDL_Renderer* renderer);
 	void draw_missiles(SDL_Renderer* renderer);
+	void draw_mines(SDL_Renderer* renderer);
 public:
 	BoardDrawer(GameView* view, const GameSettings& settings);
 	

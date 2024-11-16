@@ -21,6 +21,8 @@ struct TankImage{
 	Texture thick_cannon;
 	Texture launcher;
 	Texture missile;
+	Texture mine_on;
+	Texture mine_off;
 };
 
 class TankTexture{

@@ -39,6 +39,8 @@ const TankSourceImage LASER_GUN = register_tank_image(TANK "lasergun");
 const TankSourceImage THICK_CANNON = register_tank_image(TANK "thick_cannon");
 const TankSourceImage LAUNCHER = register_tank_image(TANK "launcher");
 const TankSourceImage MISSILE = register_tank_image(TANK "missile");
+const TankSourceImage MINE_ON = register_tank_image(TANK "mine_on");
+const TankSourceImage MINE_OFF = register_tank_image(TANK "mine_off");
 
 class BaseTankTexture : public TankTexture{
 	Texture get_image(SDL_Renderer* renderer, const TankSourceImage& source) const{
@@ -94,7 +96,9 @@ public:
 			.laser_gun = get_image(renderer, LASER_GUN),
 			.thick_cannon = get_image(renderer, THICK_CANNON),
 			.launcher = get_image(renderer, LAUNCHER),
-			.missile = get_image(renderer, MISSILE)
+			.missile = get_image(renderer, MISSILE),
+			.mine_on = get_image(renderer, MINE_ON),
+			.mine_off = get_image(renderer, MINE_OFF)
 		};
 	}
 };

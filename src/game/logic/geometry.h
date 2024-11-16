@@ -38,6 +38,10 @@ extern const Number MISSILE_TURN_SIN;
 
 extern const Number MISSILE_SPEED;
 
+extern const Number MINE_SIZE;
+extern const Number MINE_DISTANCE;
+extern const int MINE_START_TIME;
+
 Point rotate(const Point& direction, const Point& rotation);
 
 double length(const Point& point);

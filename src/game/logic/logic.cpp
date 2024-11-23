@@ -492,3 +492,20 @@ bool check_mine_collision(const MineDetails& mine, const TankState& tank){
 		collision
 	);
 }
+
+bool check_death_ray_collision(const vector<Point>& path, const TankState& tank){
+	Point normal = { .x = 0, .y = 0 };
+	Number fraction = 0;
+	for(int i = 1; i < path.size(); i++){
+		if(polygon_moving_circle_collision(
+			get_rotated_rectangle(
+				tank.position, tank.direction,
+				TANK_WIDTH, TANK_LENGTH
+			),
+			path[i-1], path[i] - path[i-1],
+			DEATH_RAY_WIDTH,
+			normal, fraction
+		)) return true;
+	}
+	return false;
+}

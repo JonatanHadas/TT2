@@ -42,12 +42,17 @@ extern const Number MINE_SIZE;
 extern const Number MINE_DISTANCE;
 extern const int MINE_START_TIME;
 
+extern const Number DEATH_RAY_WIDTH;
+extern const int DEATH_RAY_LOAD_TIME;
+
+
 Point rotate(const Point& direction, const Point& rotation);
 
 double length(const Point& point);
 
 void normalize(Point& point);
 
+Number dot(const Point& point1, const Point& point2);
 Number cross(const Point& point1, const Point& point2);
 
 // random discrete direction

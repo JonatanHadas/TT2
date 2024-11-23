@@ -11,6 +11,7 @@ using namespace std;
 class TankTexture;
 
 #define GATLING_IMAGE_CNT (3)
+#define RAY_GUN_IMAGE_CNT (4)
 
 struct TankImage{
 	const TankTexture& texture;
@@ -23,6 +24,8 @@ struct TankImage{
 	Texture missile;
 	Texture mine_on;
 	Texture mine_off;
+	Texture ray_gun[RAY_GUN_IMAGE_CNT];
+	Texture death_ray;
 };
 
 class TankTexture{

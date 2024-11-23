@@ -107,6 +107,16 @@ vector<MineCompleteState> Game::get_mines() const{
 	}
 	return mines;
 }
+vector<DeathRayState> Game::get_death_rays() const{
+	vector<DeathRayState> death_rays;
+	for(const auto& [id, death_ray]: round->get_death_rays()){
+		death_rays.push_back({
+			.path = death_ray->get_path(),
+			.timer = death_ray->get_timer()
+		});
+	}
+	return death_rays;
+}
 const set<unique_ptr<Upgrade>>& Game::get_upgrades() const{
 	return round->get_upgrades();
 }
@@ -198,6 +208,24 @@ const map<int, unique_ptr<Mine>>& Round::get_mines() const{
 	return mines;
 }
 
+int Round::add_death_ray(unique_ptr<DeathRay>&& death_ray){
+	int death_ray_id = next_id++;
+	death_rays.insert({death_ray_id, move(death_ray)});
+	return death_ray_id;
+}
+void Round::remove_death_ray(int death_ray_id){
+	game.on_death_ray_removed(death_ray_id);
+	death_rays.erase(death_ray_id);
+}
+DeathRay* Round::get_death_ray(int death_ray_id) const{
+	auto it = death_rays.find(death_ray_id);
+	if(it == death_rays.end()) return nullptr;
+	return it->second.get();
+}
+const map<int, unique_ptr<DeathRay>>& Round::get_death_rays() const{
+	return death_rays;
+}
+
 
 
 const Number EXPLOSION_SIZE = 5;
@@ -273,6 +301,16 @@ void Round::step(){
 	}
 	for(int mine_id: removed_mines){
 		remove_mine(mine_id);
+	}
+
+	vector<int> removed_death_rays;
+	for(const auto& [id, death_ray]: death_rays){
+		if(death_ray->advance(game)){
+			removed_death_rays.push_back(id);
+		}
+	}
+	for(int death_ray_id: removed_death_rays){
+		remove_death_ray(death_ray_id);
 	}
 	
 	vector<const unique_ptr<Shrapnel>*> removed_shrapnel;
@@ -579,6 +617,94 @@ bool MineManager::step(
 	return remaining_mines == 0;
 }
 
+DeathRayManager::DeathRayManager(int owner, Game& game) :
+	AppliedUpgrade({
+		.type = Upgrade::Type::DEATH_RAY,
+		.state = 0,
+		.timer = 0,
+	}),
+	owner(owner),
+	game(game) {}
+	
+const Number DEATH_RAY_STEP = Number(3)/10;
+const Number DEATH_RAY_MAX_TURN = Number(1)/20;
+
+vector<Point> DeathRayManager::get_path(const TankState& owner_state){
+	vector<Point> path;
+	
+	path.push_back(owner_state.position + owner_state.direction * CANNON_LENGTH);
+	Point direction = owner_state.direction;
+	
+	auto tanks = game.get_states();
+	
+	while(
+		path.back().x > 0 && path.back().x < game.get_maze().get_w() &&
+		path.back().y > 0 && path.back().y < game.get_maze().get_h()
+	){
+		path.push_back(path.back() + direction * DEATH_RAY_STEP);
+		
+		Number turn = 0, weight = 0;
+		bool first = true;
+		for(int i = 0; i < tanks.size(); i++){
+			if(i == owner) continue;
+			if(!tanks[i].state.alive) continue;
+			Point way = tanks[i].state.position - path.back();
+			
+			Number distance_sqr = dot(way, way);
+			Number distance_forward = dot(way, direction);
+			if(distance_sqr == 0) continue;
+			if(distance_forward < 0) continue;
+
+			// TODO: find better weight function?
+			Number current_weight = (distance_forward * distance_forward) / (distance_sqr * length(way));
+			if(first || current_weight < weight){
+				weight = current_weight;
+				turn = cross(direction, way) / (2*distance_sqr);
+			}
+			first = false;
+		}
+		
+		if(turn > DEATH_RAY_MAX_TURN) turn = DEATH_RAY_MAX_TURN;
+		if(turn < -DEATH_RAY_MAX_TURN) turn = -DEATH_RAY_MAX_TURN;
+		direction = rotate(direction, { .x = 1, .y = DEATH_RAY_STEP * turn });
+		normalize(direction);
+	}
+	
+	return path;
+}
+
+bool DeathRayManager::step(
+	const TankState& owner_state,
+	const KeyState& previous_keys,
+	Round& round
+){
+	if(state.timer > 0) state.timer--;
+	else{
+		switch(state.state){
+		case 0:
+			if(owner_state.key_state.shoot && !previous_keys.shoot){
+				state.state = 1;
+				state.timer = DEATH_RAY_LOAD_TIME;
+			}
+			break;
+		case 1:
+			state.state = 2;
+			death_ray = round.add_death_ray(make_unique<DeathRay>(DeathRayPath(
+				get_path(owner_state),
+				owner
+			)));
+			break;
+		case 2:
+			if(round.get_death_ray(death_ray) == nullptr) return true;
+			break;
+		}
+	}
+	return false;
+}
+bool DeathRayManager::allow_moving() const{
+	return state.state == 0;
+}
+
 Tank::Tank(Game& game, int index) :
 	game(game),
 	index(index),
@@ -619,6 +745,9 @@ void Tank::set_upgrade(Upgrade::Type type){
 		break;
 	case Upgrade::Type::MINES:
 		upgrade = make_unique<MineManager>(index);
+		break;
+	case Upgrade::Type::DEATH_RAY:
+		upgrade = make_unique<DeathRayManager>(index, game);
 		break;
 	}
 }
@@ -867,4 +996,31 @@ MineState Mine::get_state() const{
 	}
 	if(pressed) return MineState::PRESSED;
 	return MineState::INACTIVE;
+}
+
+const int DEATH_RAY_TTL = 30;
+
+DeathRay::DeathRay(DeathRayPath&& path) : path(path), timer(DEATH_RAY_TTL) {}
+
+bool DeathRay::step(
+	const Maze& maze, const vector<const TankState*>& tanks,
+	vector<int>& killed_tanks
+){
+	timer--;
+	if(timer == 0) return true;
+
+	for(int i = 0; i < tanks.size(); i++){
+		if(i == path.owner) continue;
+		if(check_death_ray_collision(path.path, *tanks[i])){
+			killed_tanks.push_back(i);
+		}
+	}
+	return false;
+}
+
+const DeathRayPath& DeathRay::get_path() const{
+	return path;
+}
+int DeathRay::get_timer() const{
+	return timer;
 }

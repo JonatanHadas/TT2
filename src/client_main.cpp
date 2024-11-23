@@ -66,7 +66,7 @@ int main(int argc, char** argv){
 	);
 	
 	set<Upgrade::Type> allowed_upgrades({
-		Upgrade::Type::MINES
+		Upgrade::Type::DEATH_RAY
 	});
 
 	Game game(MazeGeneration::EXPAND_TREE, allowed_upgrades, settings.colors.size());

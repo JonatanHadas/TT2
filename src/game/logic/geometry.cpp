@@ -48,6 +48,10 @@ const Number MINE_SIZE = Number(3)/20;
 const Number MINE_DISTANCE = Number(1)/2;
 const int MINE_START_TIME = 10;
 
+const Number DEATH_RAY_WIDTH = Number(1)/20;
+const int DEATH_RAY_LOAD_TIME = 60;
+
+
 Point rotate(const Point& direction, const Point& rotation) {
 	return {
 		.x = direction.x * rotation.x - direction.y * rotation.y,
@@ -93,7 +97,7 @@ Point random_direction(){
 	return result;
 }
 
-static inline Number dot(const Point& point1, const Point& point2){
+Number dot(const Point& point1, const Point& point2){
 	return point1.x * point2.x + point1.y * point2.y;
 }
 

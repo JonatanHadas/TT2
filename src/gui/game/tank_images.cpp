@@ -41,6 +41,13 @@ const TankSourceImage LAUNCHER = register_tank_image(TANK "launcher");
 const TankSourceImage MISSILE = register_tank_image(TANK "missile");
 const TankSourceImage MINE_ON = register_tank_image(TANK "mine_on");
 const TankSourceImage MINE_OFF = register_tank_image(TANK "mine_off");
+const TankSourceImage RAY_GUN[] = {
+	register_tank_image(TANK "raygun0"),
+	register_tank_image(TANK "raygun1"),
+	register_tank_image(TANK "raygun2"),
+	register_tank_image(TANK "raygun3"),
+};
+const TankSourceImage DEATH_RAY = register_tank_image(TANK "deathray");
 
 class BaseTankTexture : public TankTexture{
 	Texture get_image(SDL_Renderer* renderer, const TankSourceImage& source) const{
@@ -98,7 +105,14 @@ public:
 			.launcher = get_image(renderer, LAUNCHER),
 			.missile = get_image(renderer, MISSILE),
 			.mine_on = get_image(renderer, MINE_ON),
-			.mine_off = get_image(renderer, MINE_OFF)
+			.mine_off = get_image(renderer, MINE_OFF),
+			.ray_gun = {
+				get_image(renderer, RAY_GUN[0]),
+				get_image(renderer, RAY_GUN[1]),
+				get_image(renderer, RAY_GUN[2]),
+				get_image(renderer, RAY_GUN[3]),
+			},
+			.death_ray = get_image(renderer, DEATH_RAY)
 		};
 	}
 };

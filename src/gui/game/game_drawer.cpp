@@ -33,6 +33,7 @@ const map<Upgrade::Type, const unique_ptr<Texture>&> upgrade_textures({
 	{ Upgrade::Type::RC_MISSILE, register_image(UPGRADES "rc_missile") },
 	{ Upgrade::Type::HOMING_MISSILE, register_image(UPGRADES "homing_missile") },
 	{ Upgrade::Type::MINES, register_image(UPGRADES "mine") },
+	{ Upgrade::Type::DEATH_RAY, register_image(UPGRADES "deathray") },
 });
 
 BoardDrawer::BoardDrawer(GameView* view, const GameSettings& settings) :
@@ -72,6 +73,13 @@ const Texture& get_cannon_image(const TankUpgradeState* upgrade, const TankImage
 		return image.thick_cannon;
 	case Upgrade::Type::RC_MISSILE:
 		return image.launcher;
+	case Upgrade::Type::MINES:
+		return image.mine_off;
+	case Upgrade::Type::DEATH_RAY:
+		return image.ray_gun[
+			upgrade->state == 0 ? 0 : upgrade->state == 2 ? RAY_GUN_IMAGE_CNT - 1 :
+			RAY_GUN_IMAGE_CNT - (upgrade->timer * (RAY_GUN_IMAGE_CNT - 1) / DEATH_RAY_LOAD_TIME) - 1
+		];
 	default:
 		return image.cannon;
 	}
@@ -464,6 +472,86 @@ void BoardDrawer::draw_missiles(SDL_Renderer* renderer){
 	}			
 }
 
+static inline SDL_FPoint convert(const Point& point){
+	return {
+		.x = (float)(double)(DRAW_SCALE * (WALL_WIDTH + point.x)),
+		.y = (float)(double)(DRAW_SCALE * (WALL_WIDTH + point.y))
+	};
+}
+
+const float DEATH_RAY_SPEED = 0.05;
+const float DEATH_RAY_STRECH = 0.05;
+
+void BoardDrawer::draw_death_rays(SDL_Renderer* renderer){
+	vector<SDL_Vertex> vertices;
+	vector<int> indices;
+	for(const auto& death_ray: view->get_death_rays()){
+		float tex_y = death_ray.timer * DEATH_RAY_SPEED;
+		while(tex_y > 0.5) tex_y -= 0.5;
+		for(int i = 0, j = 0; i < death_ray.path.path.size(); i++, j++, tex_y += DEATH_RAY_STRECH){
+			Point direction = { .x = 0, .y = 0 };
+			if(i > 0){
+				direction += death_ray.path.path[i] - death_ray.path.path[i-1];
+				indices.push_back(2*j - 2);
+				indices.push_back(2*j - 1);
+				indices.push_back(2*j);
+				indices.push_back(2*j - 1);
+				indices.push_back(2*j + 1);
+				indices.push_back(2*j);
+			}
+			if(i < death_ray.path.path.size() - 1){
+				direction += death_ray.path.path[i+1] - death_ray.path.path[i];
+			}
+			normalize(direction);
+			direction *= DEATH_RAY_WIDTH;
+			Point normal = { .x = direction.y, .y = -direction.x };
+
+			vertices.push_back({
+				.position = convert(death_ray.path.path[i] + normal),
+				.color = { .r = 255, .g = 255, .b = 255, .a = 255 },
+				.tex_coord = {
+					.x = 0,
+					.y = 1 - tex_y,
+				},
+			});
+			vertices.push_back({
+				.position = convert(death_ray.path.path[i] - normal),
+				.color = { .r = 255, .g = 255, .b = 255, .a = 255 },
+				.tex_coord = {
+					.x = 1,
+					.y = 1 - tex_y,
+				},
+			});
+			if(tex_y > 0.5){
+				j++;
+				tex_y -= 0.5;
+				vertices.push_back({
+					.position = convert(death_ray.path.path[i] + normal),
+					.color = { .r = 255, .g = 255, .b = 255, .a = 255 },
+					.tex_coord = {
+						.x = 0,
+						.y = 1 - tex_y,
+					},
+				});
+				vertices.push_back({
+					.position = convert(death_ray.path.path[i] - normal),
+					.color = { .r = 255, .g = 255, .b = 255, .a = 255 },
+					.tex_coord = {
+						.x = 1,
+						.y = 1 - tex_y,
+					},
+				});
+			}
+		}
+		SDL_RenderGeometry(
+			renderer,
+			tank_images[death_ray.path.owner].death_ray.get(),
+			&vertices[0], vertices.size(),
+			&indices[0], indices.size()
+		);
+	}
+}
+
 void BoardDrawer::draw_mines(SDL_Renderer* renderer){
 	for(const auto& mine: view->get_mines()){
 		Texture* mine_texture;
@@ -507,6 +595,7 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 		draw_upgrades(renderer);
 		draw_shots(renderer);
 		draw_shrapnel(renderer);
+		draw_death_rays(renderer);
 		draw_tanks(renderer);
 		draw_missiles(renderer);
 	});

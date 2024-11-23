@@ -52,6 +52,7 @@ public:
 	vector<MissileState> get_missiles() const;
 	vector<const ShrapnelState*> get_shrapnels() const;
 	vector<MineCompleteState> get_mines() const;
+	vector<DeathRayState> get_death_rays() const;
 	const set<unique_ptr<Upgrade>>& get_upgrades() const;
 
 	void advance();
@@ -192,6 +193,23 @@ public:
 	);
 };
 
+class DeathRayManager : public AppliedUpgrade{
+	const int owner;
+	Game& game;
+	int death_ray;
+
+	vector<Point> get_path(const TankState& owner_state);
+public:
+	DeathRayManager(int owner, Game& game);
+	
+	bool step(
+		const TankState& owner_state,
+		const KeyState& previous_keys,
+		Round& round
+	);
+	bool allow_moving() const;
+};
+
 class Tank : public PlayerInterface{
 	Game& game;
 	const int index;
@@ -318,6 +336,21 @@ public:
 	MineState get_state() const;
 };
 
+class DeathRay : public Projectile{
+	const DeathRayPath path;
+	int timer;
+protected:
+	bool step(
+		const Maze& maze, const vector<const TankState*>& tanks,
+		vector<int>& killed_tanks
+	);
+public:
+	DeathRay(DeathRayPath&& path);
+	
+	const DeathRayPath& get_path() const;
+	int get_timer() const;
+};
+
 class Round{
 	Game& game;
 	const vector<Upgrade::Type>& allowed_upgrades;
@@ -329,6 +362,7 @@ class Round{
 	map<int, unique_ptr<Missile>> missiles;
 	set<int> removed_missiles;
 	map<int, unique_ptr<Mine>> mines;
+	map<int, unique_ptr<DeathRay>> death_rays;
 
 	set<unique_ptr<Upgrade>> upgrades;
 	int upgrade_timer;
@@ -357,9 +391,14 @@ public:
 	int add_mine(unique_ptr<Mine>&& mine);
 	Mine* get_mine(int mine_id) const;
 
+	int add_death_ray(unique_ptr<DeathRay>&& death_ray);
+	void remove_death_ray(int death_ray_id);
+	DeathRay* get_death_ray(int death_ray_id) const;
+
 	const map<int, unique_ptr<Shot>>& get_shots() const;
 	const map<int, unique_ptr<Missile>>& get_missiles() const;
 	const map<int, unique_ptr<Mine>>& get_mines() const;
+	const map<int, unique_ptr<DeathRay>>& get_death_rays() const;
 
 	void explode(const Point& source);
 	const set<unique_ptr<Shrapnel>>& get_shrapnels() const;

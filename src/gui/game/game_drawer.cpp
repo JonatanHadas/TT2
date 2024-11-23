@@ -288,7 +288,31 @@ void BoardDrawer::draw(SDL_Renderer* renderer){
 				angle(missile.state.direction), NULL,
 				SDL_FLIP_NONE
 			);
-		}			
+		}
+		
+		for(const auto& death_ray: view->get_death_rays()){
+			SDL_SetRenderDrawColor(
+				renderer,
+				tank_colors[settings.colors[death_ray.path.owner]].r,
+				tank_colors[settings.colors[death_ray.path.owner]].g,
+				tank_colors[settings.colors[death_ray.path.owner]].b,
+				255
+			);
+			
+			vector<SDL_Point> line;
+			for(const auto& point: death_ray.path.path){
+				line.push_back({
+					.x = DRAW_SCALE * (WALL_WIDTH + point.x),
+					.y = DRAW_SCALE * (WALL_WIDTH + point.y)
+				});
+			}
+			
+			SDL_RenderDrawLines(
+				renderer,
+				&line[0],
+				line.size()
+			);
+		}
 	});
 }
 

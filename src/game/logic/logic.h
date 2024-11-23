@@ -38,4 +38,6 @@ Number get_shrapnel_way(int time);
 bool check_upgrade_collision(const TankState& tank, const Upgrade& upgrade);
 bool check_mine_collision(const MineDetails& mine, const TankState& tank);
 
+bool check_death_ray_collision(const vector<Point>& path, const TankState& tank);
+
 #endif

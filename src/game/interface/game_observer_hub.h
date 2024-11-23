@@ -16,6 +16,8 @@ public:
 	void remove_observer(GameObserver* observer);
 	
 	void on_shot_removed(int shot_id);	
+	void on_missile_removed(int missile_id);
+	void on_death_ray_removed(int death_ray_id);
 };
 
 #endif

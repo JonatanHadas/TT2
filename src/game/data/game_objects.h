@@ -71,7 +71,8 @@ public:
 		BOMB = 2,
 		RC_MISSILE = 3,
 		HOMING_MISSILE = 4,
-		MINES = 5
+		MINES = 5,
+		DEATH_RAY = 6
 	} type;
 	int x, y;
 	
@@ -157,6 +158,20 @@ enum class MineState : unsigned char{
 	INACTIVE = 0,
 	PRESSED = 1,
 	COUNTING = 2,
+};
+
+class DeathRayPath{
+public:
+	DeathRayPath(
+		const vector<Point>& path,
+		int owner
+	);
+	
+	const vector<Point> path;
+	const int owner;
+	
+	void serialize(ostream& output) const;
+	static DeathRayPath deserialize(istream& input);
 };
 
 #endif

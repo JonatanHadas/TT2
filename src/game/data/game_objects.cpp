@@ -212,3 +212,20 @@ MineDetails MineDetails::deserialize(istream& input){
 		owner
 	);
 }
+
+
+DeathRayPath::DeathRayPath(
+	const vector<Point>& path,
+	int owner
+) : path(path), owner(owner) {}
+
+void DeathRayPath::serialize(ostream& output) const{
+	serialize_value(output, path);
+	serialize_value(output, owner);
+}
+DeathRayPath DeathRayPath::deserialize(istream& input){
+	auto path = deserialize_value<vector<Point>>(input);
+	auto owner = deserialize_value<int>(input);
+	
+	return DeathRayPath(path, owner);
+}
